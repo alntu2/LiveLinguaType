@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
 import { SentenceBlock, translateArticle } from './translator';
+import { archiveManager } from './archive-manager';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -169,19 +170,65 @@ app.get('/api/news', async (req: Request, res: Response) => {
     // 寫入快取 (Write to Cache)
     feedCache.set(categoryKey, items);
 
+    // 持久化保存至本地封存檔案 (Persist to Local Offline Archive)
+    archiveManager.saveNews(categoryKey, items);
+
     res.json({
       source: category.name,
       cached: false,
+      offline: false,
       count: items.length,
       news: items
     });
   } catch (error) {
-    console.error('Failed to parse RSS feed:', error);
+    console.warn('[API Server] Network request failed, attempting offline archive fallback:', error);
+
+    // 斷網降級：從本地封存庫讀取新聞 (Offline Archive Fallback)
+    const offlineNews = archiveManager.getNews(categoryKey);
+    if (offlineNews.length > 0) {
+      res.json({
+        source: category.name,
+        cached: true,
+        offline: true,
+        count: offlineNews.length,
+        news: offlineNews,
+        message: '⚠️ 目前處於離線狀態，已自動載入本機封存之新聞與雙語對照內容 (Loaded from Offline Archive)'
+      });
+      return;
+    }
+
     res.status(500).json({
-      error: '無法解析 Yahoo 新聞 RSS 摘要 (Failed to fetch Yahoo RSS)',
+      error: '無法解析 Yahoo 新聞且本地無可用離線封存 (Failed to fetch and no offline data)',
       details: error instanceof Error ? error.message : String(error)
     });
   }
+});
+
+// 取得離線封存狀態與統計 (Archive Stats Endpoint)
+app.get('/api/archive/stats', (_req: Request, res: Response) => {
+  const stats = archiveManager.getStats();
+  res.json(stats);
+});
+
+// 更新離線快取保留天數 (Archive Retention Policy Endpoint)
+app.post('/api/archive/settings', (req: Request, res: Response) => {
+  const { retentionDays } = req.body;
+  if (typeof retentionDays === 'number' && retentionDays >= 1 && retentionDays <= 90) {
+    archiveManager.setRetentionDays(retentionDays);
+    res.json({
+      success: true,
+      message: `保留天數已設定為 ${retentionDays} 天 (Retention days updated)`,
+      stats: archiveManager.getStats()
+    });
+    return;
+  }
+  res.status(400).json({ error: '無效的保留天數，需為 1 至 90 之間的數值 (Invalid retentionDays)' });
+});
+
+// 清除離線封存資料 (Purge Offline Archive Endpoint)
+app.post('/api/archive/clear', (_req: Request, res: Response) => {
+  archiveManager.clear();
+  res.json({ success: true, message: '離線封存資料已全數清除 (Offline archive cleared)' });
 });
 
 // 手動觸發快取釋放與記憶體清理 (Manual Cache Eviction Endpoint)

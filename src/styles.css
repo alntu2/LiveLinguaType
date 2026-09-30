@@ -163,6 +163,41 @@ body {
   50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
 }
 
+/* 網路連線與離線資料狀態標籤 */
+.network-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  user-select: none;
+  transition: all 0.25s ease;
+}
+
+.network-badge.online {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.network-badge.online .badge-dot {
+  background-color: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.network-badge.offline {
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  animation: pulse-border 2s infinite;
+}
+
+.network-badge.offline .badge-dot {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+}
+
 /* 記憶體釋放狀態標籤 */
 .memory-badge {
   display: flex;
@@ -244,6 +279,8 @@ body {
 .news-options {
   display: flex;
   align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .toggle-label {
@@ -259,6 +296,39 @@ body {
 .toggle-label input {
   accent-color: var(--accent-cyan);
   cursor: pointer;
+}
+
+/* 離線保留天數選單 */
+.retention-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.retention-label {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.retention-select {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.retention-select option {
+  background: var(--bg-secondary);
+  color: var(--text-main);
 }
 
 .news-meta {

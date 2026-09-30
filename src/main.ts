@@ -24,12 +24,17 @@ let currentNewsList: NewsItem[] = [];
 let currentArticleIndex = 0;
 let engine: TypingEngine | null = null;
 let memoryCleanCount = 0;
+let isOfflineMode = false;
 
 // DOM 元素引用 (Element References)
 const categoryNav = document.getElementById('categoryNav') as HTMLElement;
 const articleSelect = document.getElementById('articleSelect') as HTMLSelectElement;
 const toggleTranslation = document.getElementById('toggleTranslation') as HTMLInputElement;
 const toggleCaseSensitive = document.getElementById('toggleCaseSensitive') as HTMLInputElement;
+const selectRetentionDays = document.getElementById('selectRetentionDays') as HTMLSelectElement;
+
+const networkBadge = document.getElementById('networkBadge') as HTMLElement;
+const networkStatusText = document.getElementById('networkStatusText') as HTMLElement;
 const capsWarning = document.getElementById('capsWarning') as HTMLElement;
 
 const newsWordCount = document.getElementById('newsWordCount') as HTMLElement;
@@ -66,6 +71,21 @@ function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateNetworkBadge(offline: boolean, cachedCount: number): void {
+  isOfflineMode = offline;
+  if (!networkBadge || !networkStatusText) return;
+
+  if (offline) {
+    networkBadge.className = 'network-badge offline';
+    networkStatusText.textContent = `Offline (${cachedCount} 封存)`;
+    networkBadge.title = `目前處於離線狀態，已載入本機封存之新聞與雙語對照 (${cachedCount} 篇)`;
+  } else {
+    networkBadge.className = 'network-badge online';
+    networkStatusText.textContent = `Online (${cachedCount} 封存)`;
+    networkBadge.title = `即時網路連線正常，本地已持久化備份 ${cachedCount} 篇新聞`;
+  }
 }
 
 function updateDashboard(metrics: TypingMetrics): void {
@@ -143,7 +163,7 @@ function loadArticleAtIndex(index: number): void {
     hour: '2-digit',
     minute: '2-digit'
   });
-  newsOriginalLink.href = article.link;
+  newsOriginalLink.href = article.link || '#';
 
   if (!engine) {
     engine = new TypingEngine({
@@ -199,35 +219,87 @@ async function loadCategories(): Promise<void> {
   }
 }
 
+async function loadArchiveSettings(): Promise<void> {
+  try {
+    const res = await fetch('/api/archive/stats');
+    if (res.ok) {
+      const stats = await res.json();
+      if (selectRetentionDays && stats.retentionDays) {
+        selectRetentionDays.value = stats.retentionDays.toString();
+      }
+      updateNetworkBadge(false, stats.totalCount || 0);
+    }
+  } catch {
+    // 斷網情況下從 localStorage 恢復設定
+    const savedDays = localStorage.getItem('retention_days');
+    if (savedDays && selectRetentionDays) {
+      selectRetentionDays.value = savedDays;
+    }
+  }
+}
+
 async function loadNewsForCategory(category: string): Promise<void> {
   articleSelect.innerHTML = '<option value="">載入新聞與中譯中 (Loading articles & translation)...</option>';
 
   try {
     const res = await fetch(`/api/news?category=${category}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const data = await res.json();
     currentNewsList = data.news || [];
+    const isOffline = !!data.offline;
+
+    // 瀏覽器端雙重快照備份 (LocalStorage Snapshot)
+    if (!isOffline && currentNewsList.length > 0) {
+      try {
+        localStorage.setItem(`archive_news_${category}`, JSON.stringify(currentNewsList));
+      } catch (e) {
+        console.warn('LocalStorage quota exceeded or unavailable:', e);
+      }
+    }
+
+    updateNetworkBadge(isOffline, currentNewsList.length);
 
     if (currentNewsList.length === 0) {
       articleSelect.innerHTML = '<option value="">目前此分類無文章 (No articles)</option>';
       return;
     }
 
-    articleSelect.innerHTML = '';
-    currentNewsList.forEach((item, idx) => {
-      const opt = document.createElement('option');
-      opt.value = idx.toString();
-      const zhPrefix = item.titleZh && item.titleZh !== item.title
-        ? `[${item.titleZh.slice(0, 24)}...] `
-        : '';
-      opt.textContent = `${idx + 1}. ${zhPrefix}${item.title.slice(0, 60)}...`;
-      articleSelect.appendChild(opt);
-    });
-
+    renderArticleSelect();
     loadArticleAtIndex(0);
   } catch (err) {
-    console.error('Failed to load news:', err);
-    articleSelect.innerHTML = '<option value="">無法取得新聞 (Network Error)</option>';
+    console.warn('[Offline Mode] Network failed, attempting local browser storage fallback:', err);
+
+    // 終極容錯：從瀏覽器 localStorage 載入快照 (Browser Storage Fallback)
+    const localCached = localStorage.getItem(`archive_news_${category}`);
+    if (localCached) {
+      try {
+        currentNewsList = JSON.parse(localCached);
+        updateNetworkBadge(true, currentNewsList.length);
+        renderArticleSelect();
+        loadArticleAtIndex(0);
+        return;
+      } catch (e) {
+        console.error('Failed to parse localStorage cache:', e);
+      }
+    }
+
+    updateNetworkBadge(true, 0);
+    articleSelect.innerHTML = '<option value="">無法取得新聞，請連上網路後重試 (No Offline Cache Available)</option>';
   }
+}
+
+function renderArticleSelect(): void {
+  articleSelect.innerHTML = '';
+  currentNewsList.forEach((item, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx.toString();
+    const zhPrefix = item.titleZh && item.titleZh !== item.title
+      ? `[${item.titleZh.slice(0, 24)}...] `
+      : '';
+    opt.textContent = `${idx + 1}. ${zhPrefix}${item.title.slice(0, 60)}...`;
+    articleSelect.appendChild(opt);
+  });
 }
 
 async function triggerFullMemoryCleanup(): Promise<void> {
@@ -249,6 +321,27 @@ async function triggerFullMemoryCleanup(): Promise<void> {
 }
 
 // 事件註冊 (Event Listeners)
+if (selectRetentionDays) {
+  selectRetentionDays.addEventListener('change', async () => {
+    const days = parseInt(selectRetentionDays.value, 10);
+    localStorage.setItem('retention_days', days.toString());
+
+    try {
+      const res = await fetch('/api/archive/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retentionDays: days })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateNetworkBadge(isOfflineMode, data.stats?.totalCount || 0);
+      }
+    } catch (e) {
+      console.warn('Failed to update retention days on server:', e);
+    }
+  });
+}
+
 if (toggleTranslation) {
   toggleTranslation.addEventListener('change', () => {
     applyTranslationVisibility();
@@ -310,6 +403,7 @@ typingContainer.addEventListener('click', () => {
 
 window.addEventListener('DOMContentLoaded', async () => {
   applyTranslationVisibility();
+  await loadArchiveSettings();
   await loadCategories();
   await loadNewsForCategory(currentCategory);
 });

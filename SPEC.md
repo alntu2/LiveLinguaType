@@ -68,5 +68,22 @@ export interface NewsItemWithTranslation {
 - [ ] 步驟 2: 更新 `server/index.ts`，在 RSS 抓取流程整合翻譯並擴充 API 回傳結構。
 - [ ] 步驟 3: 修改 `src/styles.css`，新增雙語句子排版、中文翻譯提示、當前句高亮與切換樣式。
 - [ ] 步驟 4: 修改 `index.html`，新增雙語翻譯切換開關 (`#toggleTranslation`)。
-- [ ] 步驟 5: 重構 `src/typing-engine.ts` 與 `src/main.ts`，支援傳入 `sentences` 進行區塊渲染與句焦點連動。
-- [ ] 步驟 6: 端到端測試 (End-to-End Verification) 驗證打字計時、正確率、游標定位與雙語翻譯顯示。
+- [x] 步驟 5: 重構 `src/typing-engine.ts` 與 `src/main.ts`，支援傳入 `sentences` 進行區塊渲染與句焦點連動。
+- [x] 步驟 6: 端到端測試 (End-to-End Verification) 驗證打字計時、正確率、游標定位與雙語翻譯顯示。
+
+---
+
+## 5. 離線持久化與天數保留規範 (Offline Persistence & Retention Policy)
+
+### 5.1 核心需求 (Core Requirements)
+1. **持久化保存 (Persistent Storage):**
+   - 將線上下載並翻譯好的 RSS 新聞永久寫入本地 JSON 封存檔案 (`server/data/news_archive.json`)。
+   - 瀏覽器端同步存入 `localStorage`，形成雙重備份。
+2. **天數與篇數保留策略 (Retention Eviction Policy):**
+   - 預設保留最近 7 天內的文章，使用者可在介面自訂保留天數（3 天 / 7 天 / 14 天 / 30 天）或篇數上限（最多 50 篇/分類）。
+   - 存檔與讀取時自動過濾並清理過期資料。
+3. **無網容錯與離線狀態提示 (Offline Resilience & UI Indicators):**
+   - 網路中斷時自動降級讀取本地封存資料，返回標記 `offline: true`。
+   - UI 頂部即時顯示連線狀態：`在線即時 (Online)` 或 `離線快取 (Offline)`，並顯示目前已庫存雙語文章篇數。
+   - 提供「下載目前分類離線備份」與「清理過期離線資料」按鈕。
+

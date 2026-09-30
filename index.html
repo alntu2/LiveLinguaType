@@ -36,6 +36,10 @@
           <div class="caps-warning" id="capsWarning" style="display: none;">
             ⚠️ Caps Lock 開啟中
           </div>
+          <div class="network-badge online" id="networkBadge" title="網路連線與離線資料狀態">
+            <span class="badge-dot"></span>
+            <span id="networkStatusText">Online</span>
+          </div>
           <div class="memory-badge" id="memoryBadge" title="記憶體與資源管理狀態">
             <span class="badge-dot"></span>
             <span id="memoryStatusText">Memory: Active</span>
@@ -63,6 +67,15 @@
               <input type="checkbox" id="toggleCaseSensitive" />
               <span>嚴格大小寫 (Strict Case)</span>
             </label>
+            <div class="retention-wrapper" title="設定斷網時可用的本地離線保存天數">
+              <label for="selectRetentionDays" class="retention-label">離線保留：</label>
+              <select id="selectRetentionDays" class="retention-select" aria-label="離線保留天數">
+                <option value="3">3 天</option>
+                <option value="7" selected>7 天</option>
+                <option value="14">14 天</option>
+                <option value="30">30 天</option>
+              </select>
+            </div>
           </div>
 
           <div class="news-meta" id="newsMeta">
