@@ -51,41 +51,45 @@
       <main class="main-content">
         <!-- 新聞控制與資訊列 -->
         <section class="news-bar">
-          <div class="article-selector-wrapper">
-            <label for="articleSelect" class="selector-label">當前新聞 (Article)：</label>
-            <select id="articleSelect" class="article-select" aria-label="選擇新聞文章">
-              <option value="">載入新聞中 (Loading)...</option>
-            </select>
-          </div>
-
-          <div class="news-options">
-            <label class="toggle-label" title="在英文句子上方顯示繁體中文翻譯以利學習">
-              <input type="checkbox" id="toggleTranslation" checked />
-              <span>中英對照 (Bilingual)</span>
-            </label>
-            <label class="toggle-label" title="切換是否嚴格區分英文大小寫">
-              <input type="checkbox" id="toggleCaseSensitive" />
-              <span>嚴格大小寫 (Strict Case)</span>
-            </label>
-            <div class="retention-wrapper" title="設定斷網時可用的本地離線保存天數">
-              <label for="selectRetentionDays" class="retention-label">離線保留：</label>
-              <select id="selectRetentionDays" class="retention-select" aria-label="離線保留天數">
-                <option value="3">3 天</option>
-                <option value="7" selected>7 天</option>
-                <option value="14">14 天</option>
-                <option value="30">30 天</option>
+          <div class="news-bar-top">
+            <div class="article-selector-wrapper">
+              <label for="articleSelect" class="selector-label">當前新聞 (Article)：</label>
+              <select id="articleSelect" class="article-select" aria-label="選擇新聞文章">
+                <option value="">載入新聞中 (Loading)...</option>
               </select>
+            </div>
+
+            <div class="news-meta" id="newsMeta">
+              <span class="meta-item" id="newsWordCount">0 Words</span>
+              <span class="meta-divider">•</span>
+              <span class="meta-item" id="newsPubDate">Just now</span>
+              <span class="meta-divider">•</span>
+              <a id="newsOriginalLink" href="#" target="_blank" rel="noopener noreferrer" class="news-source-link">
+                查看原文 ↗
+              </a>
             </div>
           </div>
 
-          <div class="news-meta" id="newsMeta">
-            <span class="meta-item" id="newsWordCount">0 Words</span>
-            <span class="meta-divider">•</span>
-            <span class="meta-item" id="newsPubDate">Just now</span>
-            <span class="meta-divider">•</span>
-            <a id="newsOriginalLink" href="#" target="_blank" rel="noopener noreferrer" class="news-source-link">
-              查看原文 ↗
-            </a>
+          <div class="news-bar-bottom">
+            <div class="news-options">
+              <label class="toggle-label" title="在英文句子上方顯示繁體中文翻譯以利學習">
+                <input type="checkbox" id="toggleTranslation" checked />
+                <span>中英對照 (Bilingual)</span>
+              </label>
+              <label class="toggle-label" title="切換是否嚴格區分英文大小寫">
+                <input type="checkbox" id="toggleCaseSensitive" />
+                <span>嚴格大小寫 (Strict Case)</span>
+              </label>
+              <div class="retention-wrapper" title="設定斷網時可用的本地離線保存天數">
+                <label for="selectRetentionDays" class="retention-label">離線保留：</label>
+                <select id="selectRetentionDays" class="retention-select" aria-label="離線保留天數">
+                  <option value="3">3 天</option>
+                  <option value="7" selected>7 天</option>
+                  <option value="14">14 天</option>
+                  <option value="30">30 天</option>
+                </select>
+              </div>
+            </div>
           </div>
         </section>
 

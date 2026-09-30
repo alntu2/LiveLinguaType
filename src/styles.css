@@ -232,10 +232,8 @@ body {
 /* 新聞控制列 */
 .news-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   padding: 14px 20px;
@@ -243,22 +241,34 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
+.news-bar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 .article-selector-wrapper {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: 1;
-  min-width: 260px;
+  min-width: 0; /* 防止內部 select 被長字串撐破覆蓋鄰近元素 */
 }
 
 .selector-label {
   font-size: 0.85rem;
   color: var(--text-muted);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .article-select {
   flex: 1;
+  min-width: 0; /* 確保在彈性盒模型內能正確觸發 text-overflow */
+  width: 100%;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
@@ -268,12 +278,21 @@ body {
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s;
-  max-width: 440px;
   text-overflow: ellipsis;
 }
 
 .article-select:focus {
   border-color: var(--accent-cyan);
+}
+
+.news-bar-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .news-options {
