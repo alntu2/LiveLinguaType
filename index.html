@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LiveLinguaType - Practice English typing with real-time news and bilingual translation." />
+    <title>LiveLinguaType | 即時新聞英打練習與中英對照學習系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 頂部導航與分類列 -->
+      <header class="header">
+        <div class="header-brand">
+          <div class="brand-logo">⌨️</div>
+          <div class="brand-titles">
+            <h1 class="brand-name">LiveLinguaType</h1>
+            <p class="brand-subtitle">即時新聞英打練習與雙語學習系統</p>
+          </div>
+        </div>
+
+        <nav class="category-nav" id="categoryNav" aria-label="新聞分類選單">
+          <!-- 動態載入分類按鈕 -->
+        </nav>
+
+        <div class="header-status-area">
+          <div class="ime-warning" id="imeWarning" style="display: none;">
+            ⚠️ 偵測到中文輸入法
+          </div>
+          <div class="caps-warning" id="capsWarning" style="display: none;">
+            ⚠️ Caps Lock 開啟中
+          </div>
+          <div class="memory-badge" id="memoryBadge" title="記憶體與資源管理狀態">
+            <span class="badge-dot"></span>
+            <span id="memoryStatusText">Memory: Active</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 主要內容區域 -->
+      <main class="main-content">
+        <!-- 新聞控制與資訊列 -->
+        <section class="news-bar">
+          <div class="article-selector-wrapper">
+            <label for="articleSelect" class="selector-label">當前新聞 (Article)：</label>
+            <select id="articleSelect" class="article-select" aria-label="選擇新聞文章">
+              <option value="">載入新聞中 (Loading)...</option>
+            </select>
+          </div>
+
+          <div class="news-options">
+            <label class="toggle-label" title="在英文句子上方顯示繁體中文翻譯以利學習">
+              <input type="checkbox" id="toggleTranslation" checked />
+              <span>中英對照 (Bilingual)</span>
+            </label>
+            <label class="toggle-label" title="切換是否嚴格區分英文大小寫">
+              <input type="checkbox" id="toggleCaseSensitive" />
+              <span>嚴格大小寫 (Strict Case)</span>
+            </label>
+          </div>
+
+          <div class="news-meta" id="newsMeta">
+            <span class="meta-item" id="newsWordCount">0 Words</span>
+            <span class="meta-divider">•</span>
+            <span class="meta-item" id="newsPubDate">Just now</span>
+            <span class="meta-divider">•</span>
+            <a id="newsOriginalLink" href="#" target="_blank" rel="noopener noreferrer" class="news-source-link">
+              查看原文 ↗
+            </a>
+          </div>
+        </section>
+
+        <!-- 即時數據儀表板 -->
+        <section class="stats-dashboard" id="statsDashboard">
+          <div class="stat-card">
+            <div class="stat-label">速度 (WPM)</div>
+            <div class="stat-value" id="statWpm">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">準確率 (Accuracy)</div>
+            <div class="stat-value" id="statAccuracy">100<span class="stat-unit">%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">進度 (Progress)</div>
+            <div class="stat-value" id="statProgress">0<span class="stat-unit">%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">耗時 (Time)</div>
+            <div class="stat-value" id="statTime">00:00</div>
+          </div>
+        </section>
+
+        <!-- 打字練習核心顯示區 -->
+        <section class="typing-container" id="typingContainer" tabindex="0" role="region" aria-label="打字輸入練習區域">
+          <input
+            type="text"
+            id="hiddenInput"
+            class="hidden-input"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-hidden="true"
+          />
+          <div class="typing-focus-overlay" id="focusOverlay">點擊此處或按任意鍵開始練習 (Click or Press Any Key)</div>
+          <div class="typing-box" id="typingBox">
+            <!-- 游標直接置於 typingBox 內部以實現零位移定位 -->
+            <div class="caret" id="caret"></div>
+            <!-- 動態生成字元節點 -->
+          </div>
+        </section>
+
+        <!-- 操作控制列 -->
+        <footer class="controls-bar">
+          <button id="btnRestart" class="btn btn-secondary" title="重新開始本篇 (Restart)">
+            🔄 重新開始 (Restart)
+          </button>
+          <button id="btnNextArticle" class="btn btn-primary" title="切換下一篇 (Next Article)">
+            ⏭ 下一篇 (Next)
+          </button>
+          <button id="btnPurgeMemory" class="btn btn-outline" title="手動釋放前端與後端快取記憶體">
+            🧹 清理資源 (Free Memory)
+          </button>
+        </footer>
+      </main>
+
+      <!-- 結算成績彈窗 (Modal) -->
+      <dialog id="resultModal" class="result-modal">
+        <div class="modal-card">
+          <h2 class="modal-title">🎉 練習完成 (Finished)!</h2>
+          <p class="modal-subtitle" id="resultArticleTitle">新聞標題</p>
+
+          <div class="modal-stats-grid">
+            <div class="modal-stat-item">
+              <span class="modal-stat-num" id="modalFinalWpm">0</span>
+              <span class="modal-stat-label">最終 WPM</span>
+            </div>
+            <div class="modal-stat-item">
+              <span class="modal-stat-num" id="modalFinalAcc">0%</span>
+              <span class="modal-stat-label">準確率 (Accuracy)</span>
+            </div>
+            <div class="modal-stat-item">
+              <span class="modal-stat-num" id="modalFinalTime">0s</span>
+              <span class="modal-stat-label">總耗時 (Total Time)</span>
+            </div>
+            <div class="modal-stat-item">
+              <span class="modal-stat-num" id="modalFinalErrors">0</span>
+              <span class="modal-stat-label">錯誤字數 (Errors)</span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button id="modalBtnRestart" class="btn btn-secondary">再練一次 (Try Again)</button>
+            <button id="modalBtnNext" class="btn btn-primary">下一篇新聞 (Next Article)</button>
+          </div>
+        </div>
+      </dialog>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
