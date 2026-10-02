@@ -128,16 +128,28 @@ app.get('/api/news', async (req: Request, res: Response) => {
     const rawItems = (feed.items || [])
       .map((item, index) => {
         const title = sanitizeText(item.title || '');
-        const summary = sanitizeText(item.contentSnippet || item.content || item.description || '');
+        // 優先取用摘要欄位，避免直接灌入高達兩萬字的全文
+        let rawSummary = sanitizeText(item.contentSnippet || item.description || item.content || '');
+
+        // 若摘要長度超過 2500 字元，在完整句號處進行合理截斷，維持打字練習的良好節奏 (2~5分鐘一篇)
+        if (rawSummary.length > 2500) {
+          const cut = rawSummary.slice(0, 2500);
+          const lastPeriod = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+          if (lastPeriod > 1000) {
+            rawSummary = cut.slice(0, lastPeriod + 1).trim();
+          } else {
+            rawSummary = cut.trim() + '.';
+          }
+        }
 
         // 組合標題與摘要做為練習文本
-        const fullTypingText = `${title}. ${summary}`.trim();
+        const fullTypingText = `${title}. ${rawSummary}`.trim();
         const wordCount = fullTypingText.split(/\s+/).filter(Boolean).length;
 
         return {
           index,
           title,
-          summary,
+          summary: rawSummary,
           fullTypingText,
           pubDate: item.pubDate || new Date().toISOString(),
           link: item.link || '',
