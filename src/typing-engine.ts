@@ -31,6 +31,7 @@ export interface TypingEngineOptions {
   onPlaySentenceAudio?: (sentence: SentenceBlock) => void;
   onKeyPress?: (key: string, isCorrect?: boolean) => void;
   onWordClick?: (word: string, rect: DOMRect) => void;
+  onStart?: () => void;
 }
 
 export type CharState = 'pending' | 'correct' | 'incorrect';
@@ -50,6 +51,7 @@ export class TypingEngine {
   private onPlaySentenceAudio: ((sentence: SentenceBlock) => void) | null = null;
   private onKeyPress: ((key: string, isCorrect?: boolean) => void) | null = null;
   private onWordClick: ((word: string, rect: DOMRect) => void) | null = null;
+  private onStart: (() => void) | null = null;
   private boundClickHandler: ((e: MouseEvent) => void) | null = null;
   private highlightedSpans: HTMLElement[] = [];
 
@@ -95,6 +97,7 @@ export class TypingEngine {
     this.onPlaySentenceAudio = options.onPlaySentenceAudio || null;
     this.onKeyPress = options.onKeyPress || null;
     this.onWordClick = options.onWordClick || null;
+    this.onStart = options.onStart || null;
 
     this.bindEvents();
   }
@@ -389,6 +392,9 @@ export class TypingEngine {
     if (!this.isStarted) {
       this.isStarted = true;
       this.startTimer();
+      if (this.onStart) {
+        this.onStart();
+      }
     }
 
     const inputChar = e.key;

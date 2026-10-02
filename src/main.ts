@@ -211,6 +211,15 @@ function loadArticleAtIndex(index: number): void {
       },
       onWordClick: (word, rect) => {
         showDictPopover(word, rect);
+      },
+      onStart: () => {
+        // 使用者敲下第一鍵開始打字時，若開啟語音朗讀，才進行首句真人朗讀
+        if (toggleSpeech && toggleSpeech.checked) {
+          const current = engine?.getCurrentSentence();
+          if (current) {
+            speechService.speak(current.en);
+          }
+        }
       }
     });
   } else {
@@ -220,11 +229,6 @@ function loadArticleAtIndex(index: number): void {
   // 傳入文章與分句譯文資料
   engine.loadText(article.fullTypingText, article.sentences || []);
   applyTranslationVisibility();
-
-  // 若開啟語音朗讀，初次進入文章時自動發音第一句
-  if (toggleSpeech && toggleSpeech.checked && article.sentences && article.sentences[0]) {
-    speechService.speak(article.sentences[0].en);
-  }
 
   recordMemoryPurge('DOM & Timers Recycled');
 
