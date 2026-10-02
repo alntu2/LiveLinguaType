@@ -1,5 +1,6 @@
 // /src/main.ts
 import { TypingEngine, TypingMetrics, SentenceBlock } from './typing-engine';
+import { speechService } from './speech-service';
 
 interface Category {
   id: string;
@@ -31,6 +32,7 @@ const categoryNav = document.getElementById('categoryNav') as HTMLElement;
 const articleSelect = document.getElementById('articleSelect') as HTMLSelectElement;
 const toggleTranslation = document.getElementById('toggleTranslation') as HTMLInputElement;
 const toggleCaseSensitive = document.getElementById('toggleCaseSensitive') as HTMLInputElement;
+const toggleSpeech = document.getElementById('toggleSpeech') as HTMLInputElement;
 const selectRetentionDays = document.getElementById('selectRetentionDays') as HTMLSelectElement;
 
 const networkBadge = document.getElementById('networkBadge') as HTMLElement;
@@ -165,18 +167,32 @@ function loadArticleAtIndex(index: number): void {
   });
   newsOriginalLink.href = article.link || '#';
 
+  // 切換文章時停止上一句語音
+  speechService.stop();
+
   if (!engine) {
     engine = new TypingEngine({
       container: typingBox,
       caretElement: caret,
       caseSensitive: toggleCaseSensitive.checked,
       onMetricUpdate: updateDashboard,
-      onFinish: handleFinish,
+      onFinish: (metrics) => {
+        speechService.stop();
+        handleFinish(metrics);
+      },
       onCapsLockChange: (isCaps) => {
         capsWarning.style.display = isCaps ? 'inline-block' : 'none';
       },
       onImeDetected: (char) => {
         showImeWarning(char);
+      },
+      onSentenceChange: (_sentenceIndex, sentence) => {
+        if (toggleSpeech && toggleSpeech.checked) {
+          speechService.speak(sentence.en);
+        }
+      },
+      onPlaySentenceAudio: (sentence) => {
+        speechService.speak(sentence.en);
       }
     });
   } else {
@@ -186,6 +202,12 @@ function loadArticleAtIndex(index: number): void {
   // 傳入文章與分句譯文資料
   engine.loadText(article.fullTypingText, article.sentences || []);
   applyTranslationVisibility();
+
+  // 若開啟語音朗讀，初次進入文章時自動發音第一句
+  if (toggleSpeech && toggleSpeech.checked && article.sentences && article.sentences[0]) {
+    speechService.speak(article.sentences[0].en);
+  }
+
   recordMemoryPurge('DOM & Timers Recycled');
 
   // 自動聚焦輸入區域
@@ -354,6 +376,38 @@ if (toggleTranslation) {
     });
   });
 }
+
+if (toggleSpeech) {
+  const savedSpeech = localStorage.getItem('speech_enabled');
+  if (savedSpeech !== null) {
+    toggleSpeech.checked = savedSpeech === 'true';
+  }
+  speechService.enabled = toggleSpeech.checked;
+
+  toggleSpeech.addEventListener('change', () => {
+    speechService.enabled = toggleSpeech.checked;
+    localStorage.setItem('speech_enabled', toggleSpeech.checked.toString());
+    if (!toggleSpeech.checked) {
+      speechService.stop();
+    } else {
+      const current = engine?.getCurrentSentence();
+      if (current) {
+        speechService.speak(current.en);
+      }
+    }
+  });
+}
+
+// 全域快捷鍵：Ctrl + J 重聽當前進行句發音
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
+    e.preventDefault();
+    const current = engine?.getCurrentSentence();
+    if (current) {
+      speechService.speak(current.en);
+    }
+  }
+});
 
 toggleCaseSensitive.addEventListener('change', () => {
   if (engine) {

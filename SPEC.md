@@ -87,3 +87,20 @@ export interface NewsItemWithTranslation {
    - UI 頂部即時顯示連線狀態：`在線即時 (Online)` 或 `離線快取 (Offline)`，並顯示目前已庫存雙語文章篇數。
    - 提供「下載目前分類離線備份」與「清理過期離線資料」按鈕。
 
+---
+
+## 6. 真人語音句子朗讀規範 (Web Speech TTS Specification)
+
+### 6.1 核心需求 (Core Requirements)
+1. **零依賴原生語音 (Zero-Config Native Web Speech API):**
+   * 運用瀏覽器原生 `window.speechSynthesis` 與 `SpeechSynthesisUtterance`。
+   * 預設採用英語 (`en-US`) 高品質發音，語速設定為 `0.95`（最適英語學習聽力節奏）。
+2. **多模式觸發 (Trigger Modes):**
+   * **句子切換自動朗讀 (Auto-speak on Sentence Focus):** 打字進度進入新句子時自動發音，換句時主動中斷上一句，防止聲音重疊。
+   * **句子旁手動朗讀按鈕 (Manual Play Button `🔊`):** 每個句子區塊上方譯文旁附帶喇叭圖示，隨時點擊重播。
+   * **鍵盤快捷鍵 (Shortcut Key):** 支援 `Ctrl + J` 快速重聽當前進行句。
+3. **介面控制 (UI Controls):**
+   * 新聞控制列新增「🔊 語音朗讀 (Voice TTS)」切換開關，讓使用者自主決定是否開啟自動發音。
+
+
+

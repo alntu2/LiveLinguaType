@@ -27,6 +27,8 @@ export interface TypingEngineOptions {
   onFinish: (metrics: TypingMetrics) => void;
   onCapsLockChange?: (capsLockOn: boolean) => void;
   onImeDetected?: (char: string) => void;
+  onSentenceChange?: (sentenceIndex: number, sentence: SentenceBlock) => void;
+  onPlaySentenceAudio?: (sentence: SentenceBlock) => void;
 }
 
 export type CharState = 'pending' | 'correct' | 'incorrect';
@@ -42,6 +44,8 @@ export class TypingEngine {
   private onFinish: (metrics: TypingMetrics) => void;
   private onCapsLockChange: ((capsLockOn: boolean) => void) | null = null;
   private onImeDetected: ((char: string) => void) | null = null;
+  private onSentenceChange: ((sentenceIndex: number, sentence: SentenceBlock) => void) | null = null;
+  private onPlaySentenceAudio: ((sentence: SentenceBlock) => void) | null = null;
 
   // 設定選項 (Options)
   public caseSensitive: boolean = false;
@@ -81,6 +85,8 @@ export class TypingEngine {
     this.onFinish = options.onFinish;
     this.onCapsLockChange = options.onCapsLockChange || null;
     this.onImeDetected = options.onImeDetected || null;
+    this.onSentenceChange = options.onSentenceChange || null;
+    this.onPlaySentenceAudio = options.onPlaySentenceAudio || null;
 
     this.bindEvents();
   }
@@ -129,8 +135,21 @@ export class TypingEngine {
           zhText.className = 'sentence-zh-text';
           zhText.textContent = sentence.zh;
 
+          const speechBtn = document.createElement('button');
+          speechBtn.className = 'sentence-speech-btn';
+          speechBtn.setAttribute('title', '朗讀本句 (Play Audio)');
+          speechBtn.setAttribute('type', 'button');
+          speechBtn.innerHTML = '🔊';
+          speechBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (this.onPlaySentenceAudio) {
+              this.onPlaySentenceAudio(sentence);
+            }
+          };
+
           zhContainer.appendChild(tag);
           zhContainer.appendChild(zhText);
+          zhContainer.appendChild(speechBtn);
           block.appendChild(zhContainer);
         }
 
@@ -367,6 +386,10 @@ export class TypingEngine {
         this.sentenceElements[targetSentenceIdx].classList.add('active');
       }
       this.activeSentenceIndex = targetSentenceIdx;
+
+      if (this.onSentenceChange && this.sentences[targetSentenceIdx]) {
+        this.onSentenceChange(targetSentenceIdx, this.sentences[targetSentenceIdx]);
+      }
     }
   }
 
@@ -546,6 +569,13 @@ export class TypingEngine {
     if (this.targetText) {
       this.loadText(this.targetText, this.sentences);
     }
+  }
+
+  public getCurrentSentence(): SentenceBlock | null {
+    if (this.sentences.length > 0 && this.activeSentenceIndex >= 0 && this.activeSentenceIndex < this.sentences.length) {
+      return this.sentences[this.activeSentenceIndex];
+    }
+    return null;
   }
 
   public dispose(): void {
