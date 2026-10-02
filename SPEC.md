@@ -116,6 +116,23 @@ export interface NewsItemWithTranslation {
    * 新聞控制列新增「⌨️ 音效 (Sound)」下拉選單：`青軸 (Clicky)`、`茶軸 (Thocky)`、`打字機 (Typewriter)`、`靜音 (Mute)`。
    * 偏好設定自動記錄至 `localStorage`。
 
+---
+
+## 8. 單詞即時查詞與微型詞典規範 (Instant Word Lookup & Dictionary Popover)
+
+### 8.1 核心需求 (Core Requirements)
+1. **單詞點擊偵測與邊界識別 (Word Boundary Click Detection):**
+   * 使用者在打字區域點擊任意英文單字時，自動識別該單字之邊界（過濾標點符號與多餘空白）。
+   * 即時於單字座標旁彈出非侵入式「微型詞典氣泡卡片 (Dictionary Popover)」，不打斷打字節奏。
+2. **多維詞典資料整合 (Bilingual Lexicon & Phonetics):**
+   * 提供**音標 (Phonetics)**、**詞性 (Part of Speech)**、**繁體中文詞義 (Traditional Chinese Definitions)**。
+   * 內建單字發音按鈕 (`🔊`)，點擊即可透過 TTS 聆聽該單詞精確發音。
+3. **本地快取與收藏 (Local Cache & Favorite Wordbook):**
+   * 查詢過的單詞自動存入本地字典快取，二次查看零延遲。
+   * 支援「⭐ 收藏到生詞本」功能，並持久化記錄於 `localStorage`。
+
+
+
 
 
 

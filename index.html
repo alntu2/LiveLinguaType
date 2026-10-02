@@ -144,6 +144,24 @@
             <div class="caret" id="caret"></div>
             <!-- 動態生成字元節點 -->
           </div>
+
+          <!-- 單字即時查詞微型氣泡卡片 (Dictionary Popover) -->
+          <div id="dictPopover" class="dict-popover" style="display: none;" role="dialog" aria-label="單字釋義卡片">
+            <div class="dict-popover-header">
+              <div class="dict-word-group">
+                <span class="dict-word" id="dictWord">word</span>
+                <span class="dict-phonetic" id="dictPhonetic">/wɜːd/</span>
+              </div>
+              <div class="dict-actions">
+                <button id="dictSpeakBtn" class="dict-action-btn" title="聆聽單字發音 (TTS)" type="button">🔊</button>
+                <button id="dictStarBtn" class="dict-action-btn" title="加入我的生詞本" type="button">⭐</button>
+                <button id="dictCloseBtn" class="dict-close-btn" title="關閉 (Esc)" type="button">✕</button>
+              </div>
+            </div>
+            <div class="dict-popover-body" id="dictBody">
+              <!-- 動態載入釋義內容 -->
+            </div>
+          </div>
         </section>
 
         <!-- 操作控制列 -->

@@ -61,6 +61,15 @@ const btnRestart = document.getElementById('btnRestart') as HTMLButtonElement;
 const btnNextArticle = document.getElementById('btnNextArticle') as HTMLButtonElement;
 const btnPurgeMemory = document.getElementById('btnPurgeMemory') as HTMLButtonElement;
 
+// 單字即時查詞彈窗元素 (Dictionary Popover)
+const dictPopover = document.getElementById('dictPopover') as HTMLElement;
+const dictWord = document.getElementById('dictWord') as HTMLElement;
+const dictPhonetic = document.getElementById('dictPhonetic') as HTMLElement;
+const dictSpeakBtn = document.getElementById('dictSpeakBtn') as HTMLButtonElement;
+const dictStarBtn = document.getElementById('dictStarBtn') as HTMLButtonElement;
+const dictCloseBtn = document.getElementById('dictCloseBtn') as HTMLButtonElement;
+const dictBody = document.getElementById('dictBody') as HTMLElement;
+
 // 結果彈窗
 const resultModal = document.getElementById('resultModal') as HTMLDialogElement;
 const resultArticleTitle = document.getElementById('resultArticleTitle') as HTMLElement;
@@ -169,8 +178,9 @@ function loadArticleAtIndex(index: number): void {
   });
   newsOriginalLink.href = article.link || '#';
 
-  // 切換文章時停止上一句語音
+  // 切換文章時停止上一句語音並關閉查詞彈窗
   speechService.stop();
+  hideDictPopover();
 
   if (!engine) {
     engine = new TypingEngine({
@@ -198,6 +208,9 @@ function loadArticleAtIndex(index: number): void {
       },
       onKeyPress: (key) => {
         keyboardSound.playKey(key);
+      },
+      onWordClick: (word, rect) => {
+        showDictPopover(word, rect);
       }
     });
   } else {
@@ -469,6 +482,231 @@ modalBtnNext.addEventListener('click', () => {
   if (currentNewsList.length > 0) {
     const nextIdx = (currentArticleIndex + 1) % currentNewsList.length;
     loadArticleAtIndex(nextIdx);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 微型詞典即時查詞與生詞本 (Dictionary Popover & Wordbook)
+// ---------------------------------------------------------------------------
+interface DictEntry {
+  pos: string;
+  terms: string[];
+}
+
+interface DictResponse {
+  word: string;
+  translation?: string;
+  phonetic?: string;
+  dictEntries?: DictEntry[];
+  meanings?: Array<{ pos: string; meanings: string[] }>;
+  meaning?: string;
+  error?: string;
+}
+
+interface StarredWord {
+  word: string;
+  phonetic: string;
+  meaning: string;
+  addedAt: string;
+}
+
+let currentInspectWord = '';
+let currentInspectPhonetic = '';
+let currentInspectMeaning = '';
+
+function getWordbook(): StarredWord[] {
+  try {
+    const raw = localStorage.getItem('livelingua_wordbook');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveWordbook(list: StarredWord[]): void {
+  localStorage.setItem('livelingua_wordbook', JSON.stringify(list));
+}
+
+function isWordStarred(word: string): boolean {
+  const list = getWordbook();
+  return list.some((item) => item.word.toLowerCase() === word.toLowerCase());
+}
+
+function updateStarBtnState(starred: boolean): void {
+  if (!dictStarBtn) return;
+  if (starred) {
+    dictStarBtn.classList.add('starred');
+    dictStarBtn.title = '已收藏至生詞本 (點擊移除)';
+  } else {
+    dictStarBtn.classList.remove('starred');
+    dictStarBtn.title = '加入我的生詞本 (Star Word)';
+  }
+}
+
+function toggleStarCurrentWord(): void {
+  if (!currentInspectWord) return;
+  const list = getWordbook();
+  const index = list.findIndex((item) => item.word.toLowerCase() === currentInspectWord.toLowerCase());
+  if (index >= 0) {
+    list.splice(index, 1);
+    saveWordbook(list);
+    updateStarBtnState(false);
+  } else {
+    list.unshift({
+      word: currentInspectWord,
+      phonetic: currentInspectPhonetic,
+      meaning: currentInspectMeaning,
+      addedAt: new Date().toISOString()
+    });
+    saveWordbook(list);
+    updateStarBtnState(true);
+  }
+}
+
+function hideDictPopover(): void {
+  if (!dictPopover || dictPopover.style.display === 'none') return;
+  dictPopover.style.display = 'none';
+  currentInspectWord = '';
+  if (engine) {
+    engine.clearWordHighlight();
+  }
+}
+
+async function showDictPopover(word: string, rect: DOMRect): Promise<void> {
+  if (!dictPopover || !typingContainer) return;
+
+  currentInspectWord = word;
+  currentInspectPhonetic = '';
+  currentInspectMeaning = '';
+
+  dictWord.textContent = word;
+  dictPhonetic.textContent = '';
+  updateStarBtnState(isWordStarred(word));
+
+  dictBody.innerHTML = `
+    <div class="dict-loading">
+      <span class="dict-spinner"></span>
+      <span>查詢繁中釋義中...</span>
+    </div>
+  `;
+
+  // 計算相對於 typingContainer 的局部座標
+  const containerRect = typingContainer.getBoundingClientRect();
+  const popoverWidth = 330;
+  const popoverEstimatedHeight = 220;
+
+  let left = rect.left - containerRect.left;
+  if (left + popoverWidth > containerRect.width - 16) {
+    left = Math.max(16, containerRect.width - popoverWidth - 16);
+  }
+  if (left < 16) left = 16;
+
+  let top = rect.bottom - containerRect.top + 10;
+  if (top + popoverEstimatedHeight > containerRect.height - 16 && rect.top - containerRect.top > popoverEstimatedHeight + 20) {
+    top = rect.top - containerRect.top - popoverEstimatedHeight - 10;
+  }
+
+  dictPopover.style.left = `${left}px`;
+  dictPopover.style.top = `${top}px`;
+  dictPopover.style.display = 'block';
+
+  try {
+    const res = await fetch(`/api/dict?word=${encodeURIComponent(word)}`);
+    if (!res.ok) throw new Error('API 回應異常');
+    const data: DictResponse = await res.json();
+
+    if (currentInspectWord.toLowerCase() !== word.toLowerCase()) return;
+
+    if (data.phonetic) {
+      currentInspectPhonetic = `/${data.phonetic}/`;
+      dictPhonetic.textContent = currentInspectPhonetic;
+    } else {
+      dictPhonetic.textContent = '';
+    }
+
+    currentInspectMeaning = data.translation || (data.dictEntries?.[0]?.terms?.[0]) || data.meaning || '';
+
+    let html = '';
+    if (data.translation) {
+      html += `<div class="dict-single-meaning">主要釋義：<strong>${data.translation}</strong></div>`;
+    }
+
+    if (data.dictEntries && data.dictEntries.length > 0) {
+      data.dictEntries.forEach((group) => {
+        html += `
+          <div class="dict-pos-group">
+            <div class="dict-pos-header"><span class="dict-pos-tag">${group.pos}</span></div>
+            <ul class="dict-meanings">
+              ${group.terms.map((m) => `<li>${m}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      });
+    } else if (data.meanings && data.meanings.length > 0) {
+      data.meanings.forEach((group) => {
+        html += `
+          <div class="dict-pos-group">
+            <div class="dict-pos-header"><span class="dict-pos-tag">${group.pos}</span></div>
+            <ul class="dict-meanings">
+              ${group.meanings.map((m) => `<li>${m}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      });
+    } else if (!data.translation && data.meaning) {
+      html += `<div class="dict-single-meaning">${data.meaning}</div>`;
+    }
+
+    if (!html) {
+      html = `<div class="dict-error">查無詳細釋義</div>`;
+    }
+    dictBody.innerHTML = html;
+  } catch (err) {
+    if (currentInspectWord.toLowerCase() === word.toLowerCase()) {
+      dictBody.innerHTML = `<div class="dict-error">連線逾時或查無釋義</div>`;
+    }
+  }
+}
+
+// 綁定查詞卡片操作事件
+if (dictCloseBtn) {
+  dictCloseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideDictPopover();
+    typingContainer.focus();
+  });
+}
+
+if (dictSpeakBtn) {
+  dictSpeakBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (currentInspectWord) {
+      speechService.speak(currentInspectWord);
+    }
+  });
+}
+
+if (dictStarBtn) {
+  dictStarBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleStarCurrentWord();
+  });
+}
+
+// 監聽 Esc 關閉彈窗
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && dictPopover && dictPopover.style.display !== 'none') {
+    hideDictPopover();
+    typingContainer.focus();
+  }
+});
+
+// 點擊彈窗外部區域自動關閉
+document.addEventListener('pointerdown', (e) => {
+  if (!dictPopover || dictPopover.style.display === 'none') return;
+  const target = e.target as HTMLElement;
+  if (!dictPopover.contains(target) && !target.closest('.char')) {
+    hideDictPopover();
   }
 });
 

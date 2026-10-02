@@ -231,6 +231,85 @@ app.post('/api/archive/clear', (_req: Request, res: Response) => {
   res.json({ success: true, message: '離線封存資料已全數清除 (Offline archive cleared)' });
 });
 
+// 單字字典快取 (In-Memory Word Dictionary Cache)
+const dictCache = new Map<string, any>();
+
+// 單字即時查詞 API (Instant Word Dictionary Lookup Endpoint)
+app.get('/api/dict', async (req: Request, res: Response) => {
+  const rawWord = ((req.query.word as string) || '').trim().toLowerCase();
+  const cleanWord = rawWord.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
+
+  if (!cleanWord) {
+    res.status(400).json({ error: '請提供欲查詢之有效英文單字 (Invalid word)' });
+    return;
+  }
+
+  // 1. 檢查記憶體快取
+  if (dictCache.has(cleanWord)) {
+    res.json(dictCache.get(cleanWord));
+    return;
+  }
+
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+
+    const apiRes = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (!apiRes.ok) {
+      throw new Error(`Google Dict API responded with status ${apiRes.status}`);
+    }
+
+    const data = (await apiRes.json()) as any;
+    const translation = data[0]?.[0]?.[0] || '';
+    const phonetic = data[0]?.[1]?.[3] || data[0]?.[1]?.[2] || '';
+    const dictEntries: Array<{ pos: string; terms: string[] }> = [];
+
+    if (Array.isArray(data[1])) {
+      for (const item of data[1]) {
+        if (typeof item[0] === 'string' && Array.isArray(item[1])) {
+          dictEntries.push({
+            pos: item[0],
+            terms: item[1].slice(0, 6)
+          });
+        }
+      }
+    }
+
+    const result = {
+      word: cleanWord,
+      translation,
+      phonetic,
+      dictEntries
+    };
+
+    // 寫入快取 (最多保留 500 個單詞)
+    if (dictCache.size > 500) {
+      const oldest = dictCache.keys().next().value;
+      if (oldest) dictCache.delete(oldest);
+    }
+    dictCache.set(cleanWord, result);
+
+    res.json(result);
+  } catch (err) {
+    console.warn('[Dictionary API] Lookup fallback:', err);
+    res.json({
+      word: cleanWord,
+      translation: '',
+      phonetic: '',
+      dictEntries: [],
+      error: '暫時無法取得該單字之詳細詞典資料 (Dictionary query failed)'
+    });
+  }
+});
+
 // 手動觸發快取釋放與記憶體清理 (Manual Cache Eviction Endpoint)
 app.post('/api/admin/clear-cache', (_req: Request, res: Response) => {
   feedCache.clear();

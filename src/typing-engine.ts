@@ -30,6 +30,7 @@ export interface TypingEngineOptions {
   onSentenceChange?: (sentenceIndex: number, sentence: SentenceBlock) => void;
   onPlaySentenceAudio?: (sentence: SentenceBlock) => void;
   onKeyPress?: (key: string, isCorrect?: boolean) => void;
+  onWordClick?: (word: string, rect: DOMRect) => void;
 }
 
 export type CharState = 'pending' | 'correct' | 'incorrect';
@@ -48,6 +49,9 @@ export class TypingEngine {
   private onSentenceChange: ((sentenceIndex: number, sentence: SentenceBlock) => void) | null = null;
   private onPlaySentenceAudio: ((sentence: SentenceBlock) => void) | null = null;
   private onKeyPress: ((key: string, isCorrect?: boolean) => void) | null = null;
+  private onWordClick: ((word: string, rect: DOMRect) => void) | null = null;
+  private boundClickHandler: ((e: MouseEvent) => void) | null = null;
+  private highlightedSpans: HTMLElement[] = [];
 
   // 設定選項 (Options)
   public caseSensitive: boolean = false;
@@ -90,6 +94,7 @@ export class TypingEngine {
     this.onSentenceChange = options.onSentenceChange || null;
     this.onPlaySentenceAudio = options.onPlaySentenceAudio || null;
     this.onKeyPress = options.onKeyPress || null;
+    this.onWordClick = options.onWordClick || null;
 
     this.bindEvents();
   }
@@ -227,10 +232,12 @@ export class TypingEngine {
     this.boundKeyDownHandler = (e: KeyboardEvent) => this.handleKeyDown(e);
     this.boundKeyUpHandler = (e: KeyboardEvent) => this.handleKeyUp(e);
     this.boundResizeHandler = () => this.updateCaretPosition();
+    this.boundClickHandler = (e: MouseEvent) => this.handleContainerClick(e);
 
     window.addEventListener('keydown', this.boundKeyDownHandler);
     window.addEventListener('keyup', this.boundKeyUpHandler);
     window.addEventListener('resize', this.boundResizeHandler);
+    this.container.addEventListener('click', this.boundClickHandler);
   }
 
   private unbindEvents(): void {
@@ -245,6 +252,80 @@ export class TypingEngine {
     if (this.boundResizeHandler) {
       window.removeEventListener('resize', this.boundResizeHandler);
       this.boundResizeHandler = null;
+    }
+    if (this.boundClickHandler) {
+      this.container.removeEventListener('click', this.boundClickHandler);
+      this.boundClickHandler = null;
+    }
+  }
+
+  public clearWordHighlight(): void {
+    if (this.highlightedSpans.length > 0) {
+      this.highlightedSpans.forEach((span) => span.classList.remove('word-highlight'));
+      this.highlightedSpans = [];
+    }
+  }
+
+  private handleContainerClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+    if (!target) return;
+
+    // 排除句子朗讀按鈕點擊
+    if (target.closest('.sentence-speech-btn')) return;
+
+    const charSpan = target.closest('.char') as HTMLElement | null;
+    if (!charSpan) return;
+
+    const idx = this.charSpans.indexOf(charSpan);
+    if (idx === -1) return;
+
+    const clickedChar = this.targetText[idx];
+    if (!clickedChar || !/[a-zA-Z0-9'\-]/.test(clickedChar)) {
+      return;
+    }
+
+    // 向前搜尋單字起始邊界
+    let start = idx;
+    while (start > 0 && /[a-zA-Z0-9'\-]/.test(this.targetText[start - 1])) {
+      start--;
+    }
+
+    // 向後搜尋單字結尾邊界
+    let end = idx;
+    while (end < this.targetText.length - 1 && /[a-zA-Z0-9'\-]/.test(this.targetText[end + 1])) {
+      end++;
+    }
+
+    const rawWord = this.targetText.slice(start, end + 1);
+    const cleanWord = rawWord.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+
+    if (!cleanWord || cleanWord.length === 0) return;
+
+    // 清除舊高亮並高亮新單字
+    this.clearWordHighlight();
+    for (let i = start; i <= end; i++) {
+      const span = this.charSpans[i];
+      if (span && !span.classList.contains('space')) {
+        span.classList.add('word-highlight');
+        this.highlightedSpans.push(span);
+      }
+    }
+
+    // 計算選取單字的邊界矩形 (Bounding Rect)
+    if (this.onWordClick) {
+      const firstSpan = this.charSpans[start];
+      const lastSpan = this.charSpans[end];
+      if (firstSpan && lastSpan) {
+        const firstRect = firstSpan.getBoundingClientRect();
+        const lastRect = lastSpan.getBoundingClientRect();
+        const combinedRect = new DOMRect(
+          Math.min(firstRect.left, lastRect.left),
+          Math.min(firstRect.top, lastRect.top),
+          Math.max(firstRect.right, lastRect.right) - Math.min(firstRect.left, lastRect.left),
+          Math.max(firstRect.bottom, lastRect.bottom) - Math.min(firstRect.top, lastRect.top)
+        );
+        this.onWordClick(cleanWord, combinedRect);
+      }
     }
   }
 
@@ -558,6 +639,7 @@ export class TypingEngine {
   }
 
   private clearDomNodes(): void {
+    this.clearWordHighlight();
     this.charSpans = [];
     this.charStates = [];
     this.typedChars = [];
