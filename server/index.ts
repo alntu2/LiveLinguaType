@@ -370,6 +370,22 @@ app.post('/api/admin/clear-cache', (_req: Request, res: Response) => {
   res.json({ message: '快取已成功釋放 (Cache purged successfully)' });
 });
 
+// 前端靜態檔案託管 (Production Frontend Static Serving)
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, '../dist');
+
+app.use(express.static(distPath));
+
+app.get('*', (req: Request, res: Response, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`[API Server] Yahoo News Proxy running on http://localhost:${PORT}`);
+  console.log(`[Production Server] LiveLinguaType running on http://localhost:${PORT}`);
 });

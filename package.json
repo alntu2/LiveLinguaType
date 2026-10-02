@@ -9,7 +9,8 @@
     "client": "vite",
     "stop": "npx -y kill-port 3001 5173",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "tsx server/index.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
