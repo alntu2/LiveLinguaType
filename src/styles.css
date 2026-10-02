@@ -509,6 +509,9 @@ body {
   overflow-y: auto;
   padding-right: 8px;
   padding-top: 14px;
+  /* 預留底部空間，保證所有句子（包含末句）都能完整平滑捲動拉至視野頂部 */
+  padding-bottom: 260px;
+  scroll-behavior: smooth;
 }
 
 /* 自定義捲軸 */
@@ -523,15 +526,21 @@ body {
 
 /* 雙語學習句子區塊 (Bilingual Sentence Block) */
 .sentence-block {
-  margin-bottom: 20px;
-  padding: 10px 14px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   background: transparent;
   border: 1px solid transparent;
-  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: opacity 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sentence-block.completed {
+  opacity: 0.35;
+  filter: grayscale(30%);
 }
 
 .sentence-block.active {
+  opacity: 1;
   background: rgba(56, 189, 248, 0.04);
   border-color: rgba(56, 189, 248, 0.25);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);

@@ -225,6 +225,7 @@ export class TypingEngine {
       // 延遲一微任務以確保 DOM 計算排版完成
       requestAnimationFrame(() => {
         this.updateCaretPosition();
+        this.scrollToActiveSentence(false);
       });
     }
 
@@ -477,15 +478,45 @@ export class TypingEngine {
     if (targetSentenceIdx !== this.activeSentenceIndex) {
       if (this.sentenceElements[this.activeSentenceIndex]) {
         this.sentenceElements[this.activeSentenceIndex].classList.remove('active');
+        if (targetSentenceIdx > this.activeSentenceIndex) {
+          this.sentenceElements[this.activeSentenceIndex].classList.add('completed');
+        }
       }
       if (this.sentenceElements[targetSentenceIdx]) {
+        this.sentenceElements[targetSentenceIdx].classList.remove('completed');
         this.sentenceElements[targetSentenceIdx].classList.add('active');
       }
       this.activeSentenceIndex = targetSentenceIdx;
 
+      // 核心需求：換句時自動把要打的整句（包含上方中文翻譯）平滑拉至打字區頂端
+      this.scrollToActiveSentence(true);
+
       if (this.onSentenceChange && this.sentences[targetSentenceIdx]) {
         this.onSentenceChange(targetSentenceIdx, this.sentences[targetSentenceIdx]);
       }
+    }
+  }
+
+  /**
+   * 將當前正在進行的句子（包含中文翻譯標籤）平滑拉至容器視野頂部
+   */
+  public scrollToActiveSentence(smooth: boolean = true): void {
+    if (this.activeSentenceIndex < 0 || !this.sentenceElements[this.activeSentenceIndex]) return;
+
+    const block = this.sentenceElements[this.activeSentenceIndex];
+    const containerTop = this.container.getBoundingClientRect().top;
+    const blockTop = block.getBoundingClientRect().top;
+
+    // 計算當前 block 相對於容器的偏移，保留 10px 呼吸間距，確保完整看見中譯
+    const targetScrollTop = this.container.scrollTop + (blockTop - containerTop) - 10;
+
+    if (typeof this.container.scrollTo === 'function') {
+      this.container.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    } else {
+      this.container.scrollTop = Math.max(0, targetScrollTop);
     }
   }
 
