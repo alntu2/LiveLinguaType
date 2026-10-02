@@ -29,6 +29,7 @@ export interface TypingEngineOptions {
   onImeDetected?: (char: string) => void;
   onSentenceChange?: (sentenceIndex: number, sentence: SentenceBlock) => void;
   onPlaySentenceAudio?: (sentence: SentenceBlock) => void;
+  onKeyPress?: (key: string, isCorrect?: boolean) => void;
 }
 
 export type CharState = 'pending' | 'correct' | 'incorrect';
@@ -46,6 +47,7 @@ export class TypingEngine {
   private onImeDetected: ((char: string) => void) | null = null;
   private onSentenceChange: ((sentenceIndex: number, sentence: SentenceBlock) => void) | null = null;
   private onPlaySentenceAudio: ((sentence: SentenceBlock) => void) | null = null;
+  private onKeyPress: ((key: string, isCorrect?: boolean) => void) | null = null;
 
   // 設定選項 (Options)
   public caseSensitive: boolean = false;
@@ -87,6 +89,7 @@ export class TypingEngine {
     this.onImeDetected = options.onImeDetected || null;
     this.onSentenceChange = options.onSentenceChange || null;
     this.onPlaySentenceAudio = options.onPlaySentenceAudio || null;
+    this.onKeyPress = options.onKeyPress || null;
 
     this.bindEvents();
   }
@@ -285,6 +288,7 @@ export class TypingEngine {
 
     if (e.key === 'Backspace') {
       e.preventDefault();
+      if (this.onKeyPress) this.onKeyPress('Backspace');
       this.handleBackspace();
       return;
     }
@@ -312,6 +316,7 @@ export class TypingEngine {
 
     // 空白鍵跳下一個單字邏輯
     if (inputChar === ' ' && targetChar !== ' ') {
+      if (this.onKeyPress) this.onKeyPress(' ');
       this.jumpToNextWord();
       return;
     }
@@ -324,6 +329,10 @@ export class TypingEngine {
     const isMatch = this.caseSensitive
       ? inputChar === targetChar
       : inputChar.toLowerCase() === targetChar.toLowerCase();
+
+    if (this.onKeyPress) {
+      this.onKeyPress(inputChar, isMatch);
+    }
 
     if (isMatch) {
       this.charStates[this.currentIndex] = 'correct';

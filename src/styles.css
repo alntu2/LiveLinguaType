@@ -350,6 +350,39 @@ body {
   color: var(--text-main);
 }
 
+/* 鍵盤音效選單 */
+.sound-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.sound-label {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.sound-select {
+  background: transparent;
+  border: none;
+  color: var(--accent-emerald);
+  font-size: 0.8rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.sound-select option {
+  background: var(--bg-secondary);
+  color: var(--text-main);
+}
+
 .news-meta {
   display: flex;
   align-items: center;

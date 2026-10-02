@@ -100,7 +100,22 @@ export interface NewsItemWithTranslation {
    * **句子旁手動朗讀按鈕 (Manual Play Button `🔊`):** 每個句子區塊上方譯文旁附帶喇叭圖示，隨時點擊重播。
    * **鍵盤快捷鍵 (Shortcut Key):** 支援 `Ctrl + J` 快速重聽當前進行句。
 3. **介面控制 (UI Controls):**
-   * 新聞控制列新增「🔊 語音朗讀 (Voice TTS)」切換開關，讓使用者自主決定是否開啟自動發音。
+---
+
+## 7. 機械鍵盤敲擊音效規範 (Mechanical Keyboard Audio Effects Specification)
+
+### 7.1 核心需求 (Core Requirements)
+1. **超低延遲零依賴音訊引擎 (Zero-Dependency Low-Latency Web Audio API):**
+   * 使用瀏覽器原生 `AudioContext` 進行微秒級實時波形合成，無外掛音檔負擔、零網路延遲（響應時間 < 5ms），斷網依然 100% 可用。
+2. **多軸體與鍵位擬真音效 (Multiple Switch Profiles):**
+   * **青軸 (Blue Switch / Clicky):** 雙段式清脆響亮高頻點擊感。
+   * **茶軸 (Brown Switch / Thocky):** 溫潤厚實的木質打擊感 (Thock)。
+   * **打字機 (Typewriter):** 復古金屬敲擊聲。
+   * **特殊鍵位區別:** 空白鍵 (Spacebar) 與 Enter 鍵具備沉穩大鍵音效，退格鍵 (Backspace) 具備專屬彈回音。
+3. **介面選單與記憶 (UI Controls & Persistence):**
+   * 新聞控制列新增「⌨️ 音效 (Sound)」下拉選單：`青軸 (Clicky)`、`茶軸 (Thocky)`、`打字機 (Typewriter)`、`靜音 (Mute)`。
+   * 偏好設定自動記錄至 `localStorage`。
+
 
 
 

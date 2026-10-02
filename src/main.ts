@@ -1,6 +1,7 @@
 // /src/main.ts
 import { TypingEngine, TypingMetrics, SentenceBlock } from './typing-engine';
 import { speechService } from './speech-service';
+import { keyboardSound, KeyboardSoundType } from './keyboard-sound';
 
 interface Category {
   id: string;
@@ -33,6 +34,7 @@ const articleSelect = document.getElementById('articleSelect') as HTMLSelectElem
 const toggleTranslation = document.getElementById('toggleTranslation') as HTMLInputElement;
 const toggleCaseSensitive = document.getElementById('toggleCaseSensitive') as HTMLInputElement;
 const toggleSpeech = document.getElementById('toggleSpeech') as HTMLInputElement;
+const selectKeyboardSound = document.getElementById('selectKeyboardSound') as HTMLSelectElement;
 const selectRetentionDays = document.getElementById('selectRetentionDays') as HTMLSelectElement;
 
 const networkBadge = document.getElementById('networkBadge') as HTMLElement;
@@ -193,6 +195,9 @@ function loadArticleAtIndex(index: number): void {
       },
       onPlaySentenceAudio: (sentence) => {
         speechService.speak(sentence.en);
+      },
+      onKeyPress: (key) => {
+        keyboardSound.playKey(key);
       }
     });
   } else {
@@ -408,6 +413,23 @@ window.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// 機械鍵盤音效偏好讀取與切換
+if (selectKeyboardSound) {
+  const savedSound = localStorage.getItem('keyboard_sound') as KeyboardSoundType | null;
+  if (savedSound) {
+    selectKeyboardSound.value = savedSound;
+    keyboardSound.currentType = savedSound;
+  }
+
+  selectKeyboardSound.addEventListener('change', () => {
+    const type = selectKeyboardSound.value as KeyboardSoundType;
+    keyboardSound.currentType = type;
+    localStorage.setItem('keyboard_sound', type);
+    // 切換時試聽一次按鍵敲擊音
+    keyboardSound.playKey('a');
+  });
+}
 
 toggleCaseSensitive.addEventListener('change', () => {
   if (engine) {
