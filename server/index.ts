@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
+import { translate } from 'google-translate-api-x';
 import { SentenceBlock, translateArticle } from './translator';
 import { archiveManager } from './archive-manager';
 
@@ -262,12 +263,29 @@ app.get('/api/dict', async (req: Request, res: Response) => {
     return;
   }
 
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+  const result = {
+    word: cleanWord,
+    translation: '',
+    phonetic: '',
+    dictEntries: [] as Array<{ pos: string; terms: string[] }>
+  };
 
-    const apiRes = await fetch(url, {
+  // 1. 使用 google-translate-api-x 進行高可靠翻譯 (取得繁中核心釋義)
+  try {
+    const transRes = await translate(cleanWord, { to: 'zh-TW' });
+    if (transRes && transRes.text && transRes.text.toLowerCase() !== cleanWord) {
+      result.translation = transRes.text.trim();
+    }
+  } catch (err) {
+    console.warn('[Dictionary] google-translate-api-x lookup failed:', err);
+  }
+
+  // 2. 向權威 Yahoo 奇摩字典抓取國際音標 (IPA) 與專業詞典釋義
+  try {
+    const yahooUrl = `https://tw.dictionary.search.yahoo.com/search?p=${encodeURIComponent(cleanWord)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const yahooRes = await fetch(yahooUrl, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -275,51 +293,71 @@ app.get('/api/dict', async (req: Request, res: Response) => {
     });
     clearTimeout(timeout);
 
-    if (!apiRes.ok) {
-      throw new Error(`Google Dict API responded with status ${apiRes.status}`);
-    }
+    if (yahooRes.ok) {
+      const html = await yahooRes.text();
 
-    const data = (await apiRes.json()) as any;
-    const translation = data[0]?.[0]?.[0] || '';
-    const phonetic = data[0]?.[1]?.[3] || data[0]?.[1]?.[2] || '';
-    const dictEntries: Array<{ pos: string; terms: string[] }> = [];
+      // 解析音標 IPA[xxx] 或 DJ[xxx]
+      const ipaMatch = html.match(/class="fz-14"[^>]*>(?:IPA|DJ)\[([^\]]+)\]/);
+      if (ipaMatch && ipaMatch[1]) {
+        result.phonetic = ipaMatch[1].trim();
+      }
 
-    if (Array.isArray(data[1])) {
-      for (const item of data[1]) {
-        if (typeof item[0] === 'string' && Array.isArray(item[1])) {
-          dictEntries.push({
-            pos: item[0],
-            terms: item[1].slice(0, 6)
+      // 解析釋義
+      const expMatch = html.match(/class="[^"]*dictionaryExplanation[^"]*"[^>]*>([^<]+)/g);
+      if (expMatch && expMatch.length > 0) {
+        const terms = expMatch
+          .map((e) => e.replace(/<[^>]+>|class="[^"]*dictionaryExplanation[^"]*"[^>]*>/g, '').trim())
+          .filter(Boolean)
+          .slice(0, 5);
+
+        if (terms.length > 0) {
+          if (!result.translation) {
+            result.translation = terms[0];
+          }
+          result.dictEntries.push({
+            pos: '奇摩詞典釋義',
+            terms
           });
         }
       }
     }
+  } catch (err) {
+    console.warn('[Dictionary] Yahoo dictionary lookup failed:', err);
+  }
 
-    const result = {
-      word: cleanWord,
-      translation,
-      phonetic,
-      dictEntries
-    };
+  // 若仍無釋義且以 s 結尾，查詢單數原型
+  if (!result.translation && cleanWord.endsWith('s') && cleanWord.length > 3) {
+    const singular = cleanWord.endsWith('es') ? cleanWord.slice(0, -2) : cleanWord.slice(0, -1);
+    try {
+      const transRes = await translate(singular, { to: 'zh-TW' });
+      if (transRes && transRes.text && transRes.text.toLowerCase() !== singular) {
+        result.translation = `${transRes.text.trim()} (複數)`;
+        result.dictEntries.push({
+          pos: '名詞 (複數)',
+          terms: [transRes.text.trim()]
+        });
+      }
+    } catch {}
+  }
 
-    // 寫入快取 (最多保留 500 個單詞)
+  // 若取得任何翻譯，寫入快取並返回
+  if (result.translation || result.dictEntries.length > 0) {
     if (dictCache.size > 500) {
       const oldest = dictCache.keys().next().value;
       if (oldest) dictCache.delete(oldest);
     }
     dictCache.set(cleanWord, result);
-
     res.json(result);
-  } catch (err) {
-    console.warn('[Dictionary API] Lookup fallback:', err);
-    res.json({
-      word: cleanWord,
-      translation: '',
-      phonetic: '',
-      dictEntries: [],
-      error: '暫時無法取得該單字之詳細詞典資料 (Dictionary query failed)'
-    });
+    return;
   }
+
+  res.json({
+    word: cleanWord,
+    translation: '',
+    phonetic: '',
+    dictEntries: [],
+    error: '暫無此詞詳細釋義 (No definition found)'
+  });
 });
 
 // 手動觸發快取釋放與記憶體清理 (Manual Cache Eviction Endpoint)
