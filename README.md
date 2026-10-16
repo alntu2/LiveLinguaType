@@ -56,6 +56,13 @@
    - 內建高效率 Google GTX 翻譯代理與 RSS 摘要擷取服務，完全免 API Key 開箱即用。
    - 具備伺服器記憶體快取 (In-Memory Cache) 與快取清理 (Purge Cache) 機制。
 
+7. **🎴 Anki 間隔重複卡牌學習 (Spaced Repetition System, SRS):**
+   - **SM-2 科學間隔記憶演算法：** 依據回想難易度 (Again, Hard, Good, Easy) 動態計算複習間隔與難易度係數。
+   - **英打無縫收錄：** 練習新聞打字時，任意點擊生詞或按 `⭐ 收藏當前句` 即可立即同步建立卡片。
+   - **多牌組管理 (Multi-Deck Support)：** 內建「即時新聞」、「核心生詞」、「經典句型」牌組，並支援自由建立個人專屬牌組。
+   - **個人專屬筆記區 (Personal Notes)：** 卡片支援即時自動保存個人聯想口訣、文法搭配與備忘筆記。
+   - **拼寫打字模式 (Type-to-Recall)：** 支援看正面親手拼出英文驗證記憶，將肌肉記憶與大腦記憶完美融合！
+
 ---
 
 ## ⌨️ 常用快捷鍵 (Keyboard Shortcuts)
