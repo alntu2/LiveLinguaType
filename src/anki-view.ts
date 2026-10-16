@@ -15,7 +15,9 @@ import {
   reviewCard,
   deleteCard,
   updateCardNotes,
-  updateCardDeck
+  updateCardDeck,
+  exportCardsToMarkdown,
+  importCardsFromMarkdown
 } from './srs';
 import { speakText } from './speech-service';
 
@@ -132,6 +134,13 @@ export class AnkiView {
             <button class="btn btn-outline btn-sm" id="btnManageDeck" title="瀏覽並管理全部卡片清單">
               📚 卡片庫管理
             </button>
+
+            <button class="btn btn-outline btn-sm" id="btnExportMarkdown" title="匯出 Markdown 格式檔案或複製文本">
+              📤 匯出 (.md)
+            </button>
+            <button class="btn btn-outline btn-sm" id="btnImportMarkdown" title="從 Markdown 筆記或檔案匯入卡片">
+              📥 匯入 (.md)
+            </button>
           </div>
         </header>
 
@@ -142,6 +151,9 @@ export class AnkiView {
 
         <!-- 卡片庫抽屜 / 彈窗容器 -->
         <div id="deckManagerModal" class="deck-modal" style="display: none;"></div>
+
+        <!-- Markdown 匯出/匯入彈窗容器 -->
+        <div id="markdownModal" class="deck-modal" style="display: none;"></div>
 
         <!-- 新增牌組彈窗 (Modal) -->
         <div id="newDeckModal" class="deck-modal" style="display: none;">
@@ -270,6 +282,18 @@ export class AnkiView {
     const btnManage = this.container.querySelector('#btnManageDeck');
     btnManage?.addEventListener('click', () => {
       this.showDeckManager();
+    });
+
+    // 匯出 Markdown
+    const btnExport = this.container.querySelector('#btnExportMarkdown');
+    btnExport?.addEventListener('click', () => {
+      this.showExportMarkdownModal();
+    });
+
+    // 匯入 Markdown
+    const btnImport = this.container.querySelector('#btnImportMarkdown');
+    btnImport?.addEventListener('click', () => {
+      this.showImportMarkdownModal();
     });
   }
 
@@ -747,6 +771,199 @@ export class AnkiView {
         const text = row.textContent?.toLowerCase() || '';
         (row as HTMLElement).style.display = text.includes(q) ? 'flex' : 'none';
       });
+    });
+  }
+
+  /**
+   * 顯示 Markdown 匯出彈窗 (Export Markdown Flow)
+   */
+  private showExportMarkdownModal(): void {
+    const modal = this.container.querySelector('#markdownModal') as HTMLElement;
+    if (!modal) return;
+
+    const decks = getDecks();
+    const initialDeckId = this.currentDeckId;
+    let currentMd = exportCardsToMarkdown(initialDeckId);
+
+    modal.innerHTML = `
+      <div class="deck-modal-backdrop" id="modalMdBackdrop"></div>
+      <div class="deck-modal-content md-transfer-modal">
+        <div class="deck-modal-header">
+          <h3>📤 匯出記憶卡牌 (Export Flashcards as Markdown)</h3>
+          <button class="deck-modal-close" id="btnCloseMdModal">✕</button>
+        </div>
+
+        <div class="deck-modal-body">
+          <div class="modal-form-group">
+            <label for="exportDeckSelect">選擇要匯出的牌組範圍：</label>
+            <select id="exportDeckSelect" class="form-select">
+              <option value="all" ${initialDeckId === 'all' ? 'selected' : ''}>🌐 全部牌組 (All Decks)</option>
+              ${decks.map((d) => `
+                <option value="${d.id}" ${initialDeckId === d.id ? 'selected' : ''}>${d.icon || '📁'} ${d.name}</option>
+              `).join('')}
+            </select>
+          </div>
+
+          <div class="modal-form-group">
+            <label>Markdown 內容預覽 (Markdown Preview)：</label>
+            <textarea id="exportMdTextarea" class="md-preview-textarea" readonly rows="12">${currentMd}</textarea>
+          </div>
+
+          <div class="modal-form-actions">
+            <button class="btn btn-secondary" id="btnCopyMd">📋 複製到剪貼簿</button>
+            <button class="btn btn-primary" id="btnDownloadMd">📥 下載 .md 檔案</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+
+    const close = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.querySelector('#btnCloseMdModal')?.addEventListener('click', close);
+    modal.querySelector('#modalMdBackdrop')?.addEventListener('click', close);
+
+    const select = modal.querySelector('#exportDeckSelect') as HTMLSelectElement;
+    const textarea = modal.querySelector('#exportMdTextarea') as HTMLTextAreaElement;
+    const btnCopy = modal.querySelector('#btnCopyMd') as HTMLButtonElement;
+    const btnDownload = modal.querySelector('#btnDownloadMd') as HTMLButtonElement;
+
+    select?.addEventListener('change', () => {
+      currentMd = exportCardsToMarkdown(select.value);
+      textarea.value = currentMd;
+    });
+
+    btnCopy?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(currentMd);
+        btnCopy.textContent = '已複製 ✓';
+        setTimeout(() => {
+          btnCopy.textContent = '📋 複製到剪貼簿';
+        }, 2000);
+      } catch {
+        textarea.select();
+        document.execCommand('copy');
+        btnCopy.textContent = '已複製 ✓';
+      }
+    });
+
+    btnDownload?.addEventListener('click', () => {
+      const now = new Date();
+      const filename = `flashcards-export-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.md`;
+      const blob = new Blob([currentMd], { type: 'text/markdown;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  /**
+   * 顯示 Markdown 匯入彈窗 (Import Markdown Flow)
+   */
+  private showImportMarkdownModal(): void {
+    const modal = this.container.querySelector('#markdownModal') as HTMLElement;
+    if (!modal) return;
+
+    const decks = getDecks();
+    const defaultDeckId = this.currentDeckId === 'all' ? 'default' : this.currentDeckId;
+
+    modal.innerHTML = `
+      <div class="deck-modal-backdrop" id="modalMdBackdrop"></div>
+      <div class="deck-modal-content md-transfer-modal">
+        <div class="deck-modal-header">
+          <h3>📥 匯入記憶卡牌 (Import Flashcards from Markdown)</h3>
+          <button class="deck-modal-close" id="btnCloseMdModal">✕</button>
+        </div>
+
+        <div class="deck-modal-body">
+          <div class="modal-form-group">
+            <label for="importDeckSelect">匯入至目標牌組：</label>
+            <select id="importDeckSelect" class="form-select">
+              ${decks.map((d) => `
+                <option value="${d.id}" ${d.id === defaultDeckId ? 'selected' : ''}>${d.icon || '📁'} ${d.name}</option>
+              `).join('')}
+            </select>
+          </div>
+
+          <div class="modal-form-group">
+            <label>選擇本機 .md 檔案 (可直接拖曳上傳)：</label>
+            <input type="file" id="importFileInput" accept=".md,.markdown,.txt" class="form-file-input" />
+          </div>
+
+          <div class="modal-form-group">
+            <label for="importMdTextarea">或在此直接貼上 Markdown 格式文字：</label>
+            <textarea
+              id="importMdTextarea"
+              class="md-preview-textarea"
+              placeholder="| 英文 (Front) | 中文釋義 (Back) | 筆記 (Notes) |&#10;或&#10;Front :: Back&#10;或&#10;- Front : Back"
+              rows="8"
+            ></textarea>
+          </div>
+
+          <div class="md-format-hint">
+            💡 <strong>支援格式：</strong>Markdown 表格 (<code>| Front | Back |</code>)、雙冒號分隔 (<code>Front :: Back</code>) 或項目清單 (<code>- Front : Back</code>)。
+          </div>
+
+          <div class="modal-form-actions">
+            <button class="btn btn-secondary" id="btnCancelImport">取消</button>
+            <button class="btn btn-primary" id="btnExecuteImport">📥 開始匯入卡片</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+
+    const close = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.querySelector('#btnCloseMdModal')?.addEventListener('click', close);
+    modal.querySelector('#modalMdBackdrop')?.addEventListener('click', close);
+    modal.querySelector('#btnCancelImport')?.addEventListener('click', close);
+
+    const fileInput = modal.querySelector('#importFileInput') as HTMLInputElement;
+    const textarea = modal.querySelector('#importMdTextarea') as HTMLTextAreaElement;
+    const select = modal.querySelector('#importDeckSelect') as HTMLSelectElement;
+    const btnExecute = modal.querySelector('#btnExecuteImport') as HTMLButtonElement;
+
+    fileInput?.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          textarea.value = (e.target?.result as string) || '';
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+    });
+
+    btnExecute?.addEventListener('click', () => {
+      const content = textarea.value.trim();
+      if (!content) {
+        alert('請先輸入或上傳 Markdown 內容！');
+        return;
+      }
+
+      const targetDeck = select.value || 'default';
+      const result = importCardsFromMarkdown(content, targetDeck);
+
+      if (result.successCount > 0) {
+        alert(`🎉 成功匯入 ${result.successCount} 張卡片！`);
+        close();
+        this.refreshCards();
+        this.render();
+      } else {
+        alert('未能從內容中辨識出有效卡片。請檢查格式是否包含「Front :: Back」或 Markdown 表格！');
+      }
     });
   }
 }

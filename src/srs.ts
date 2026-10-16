@@ -489,3 +489,171 @@ export function syncFromWordbook(): void {
     console.warn('Sync from wordbook warning:', err);
   }
 }
+
+/**
+ * 將指定牌組或全部卡片匯出為標準 Markdown 格式
+ */
+export function exportCardsToMarkdown(deckId?: string): string {
+  const cards = getAllCards().filter((c) => (!deckId || deckId === 'all' ? true : c.deckId === deckId));
+  const decks = getDecks();
+  const deckName = !deckId || deckId === 'all'
+    ? '全部牌組 (All Decks)'
+    : decks.find((d) => d.id === deckId)?.name || '未命名牌組';
+
+  const dateStr = new Date().toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const lines: string[] = [
+    `# 🎴 LiveLinguaType 智慧記憶卡牌庫匯出`,
+    ``,
+    `> **匯出時間：** ${dateStr}  `,
+    `> **牌組範圍：** ${deckName}  `,
+    `> **卡片總數：** ${cards.length} 張`,
+    ``,
+    `| 類型 (Type) | 牌組 (Deck) | 英文內容 (Front) | 音標 (Phonetic) | 中文釋義 (Back) | 我的筆記 (Notes) | 例句/出處 (Context) |`,
+    `| :--- | :--- | :--- | :--- | :--- | :--- | :--- |`
+  ];
+
+  for (const card of cards) {
+    const typeLabel = card.type === 'word' ? '單字' : '句子';
+    const cardDeck = decks.find((d) => d.id === card.deckId)?.name || '預設牌組';
+    const cleanFront = (card.front || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+    const cleanPhonetic = (card.phonetic || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+    const cleanBack = (card.back || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+    const cleanNotes = (card.notes || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+    const cleanContext = (card.context || card.sourceArticle || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+
+    lines.push(
+      `| ${typeLabel} | ${cardDeck} | ${cleanFront} | ${cleanPhonetic} | ${cleanBack} | ${cleanNotes} | ${cleanContext} |`
+    );
+  }
+
+  lines.push('');
+  lines.push('---');
+  lines.push('*由 LiveLinguaType 自動產生，可直接於 Obsidian、Notion 或 Markdown 編輯器中檢視與編輯。*');
+
+  return lines.join('\n');
+}
+
+/**
+ * 從 Markdown 文本多格式容錯解析並匯入卡片
+ */
+export function importCardsFromMarkdown(
+  markdownContent: string,
+  targetDeckId: string = 'default'
+): { successCount: number; errors: string[] } {
+  const lines = markdownContent.split(/\r?\n/);
+  const errors: string[] = [];
+  let successCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i].trim();
+    if (!rawLine || rawLine.startsWith('#') || rawLine.startsWith('>') || rawLine.startsWith('---')) {
+      continue;
+    }
+
+    // 格式 1: 表格行 (| col1 | col2 | ...)
+    if (rawLine.startsWith('|') && rawLine.endsWith('|')) {
+      const parts = rawLine
+        .split('|')
+        .slice(1, -1)
+        .map((p) => p.trim());
+
+      // 略過表頭與分隔線
+      if (
+        parts.length < 2 ||
+        parts.some((p) => p.includes('---')) ||
+        parts.includes('英文內容 (Front)') ||
+        parts.includes('Front')
+      ) {
+        continue;
+      }
+
+      let front = '';
+      let back = '';
+      let phonetic = '';
+      let notes = '';
+      let context = '';
+
+      if (parts.length >= 7) {
+        // 標準完整 7 欄格式: [Type, Deck, Front, Phonetic, Back, Notes, Context]
+        front = parts[2];
+        phonetic = parts[3];
+        back = parts[4].replace(/<br\s*\/?>/gi, '\n');
+        notes = parts[5].replace(/<br\s*\/?>/gi, '\n');
+        context = parts[6];
+      } else if (parts.length >= 5) {
+        // 5 欄格式: [Front, Phonetic, Back, Notes, Context]
+        front = parts[0];
+        phonetic = parts[1];
+        back = parts[2].replace(/<br\s*\/?>/gi, '\n');
+        notes = parts[3].replace(/<br\s*\/?>/gi, '\n');
+        context = parts[4];
+      } else if (parts.length >= 3) {
+        // 3 欄格式: [Front, Back, Notes]
+        front = parts[0];
+        back = parts[1].replace(/<br\s*\/?>/gi, '\n');
+        notes = parts[2].replace(/<br\s*\/?>/gi, '\n');
+      } else if (parts.length === 2) {
+        // 最簡 2 欄格式: [Front, Back]
+        front = parts[0];
+        back = parts[1].replace(/<br\s*\/?>/gi, '\n');
+      }
+
+      if (front && back) {
+        const isSentence = front.includes(' ') && front.length > 25;
+        if (isSentence) {
+          addSentenceCard(front, back, context, targetDeckId, notes);
+        } else {
+          addWordCard(front, phonetic, back, context, undefined, targetDeckId, notes);
+        }
+        successCount++;
+        continue;
+      }
+    }
+
+    // 格式 2: 常見的抽認卡分隔格式 (Front :: Back 或 Front --- Back 或 Front \t Back)
+    let sepIndex = rawLine.indexOf('::');
+    let sepLen = 2;
+    if (sepIndex === -1) {
+      sepIndex = rawLine.indexOf('\t');
+      sepLen = 1;
+    }
+
+    if (sepIndex > 0) {
+      const front = rawLine.substring(0, sepIndex).trim();
+      const rest = rawLine.substring(sepIndex + sepLen).trim();
+      if (front && rest) {
+        const isSentence = front.includes(' ') && front.length > 25;
+        if (isSentence) {
+          addSentenceCard(front, rest, undefined, targetDeckId);
+        } else {
+          addWordCard(front, '', rest, undefined, undefined, targetDeckId);
+        }
+        successCount++;
+        continue;
+      }
+    }
+
+    // 格式 3: 列表項目 (- Front : Back)
+    if (rawLine.startsWith('- ') || rawLine.startsWith('* ')) {
+      const item = rawLine.substring(2).trim();
+      const colonIdx = item.indexOf(':');
+      if (colonIdx > 0) {
+        const front = item.substring(0, colonIdx).trim().replace(/\*\*/g, '');
+        const back = item.substring(colonIdx + 1).trim();
+        if (front && back) {
+          addWordCard(front, '', back, undefined, undefined, targetDeckId);
+          successCount++;
+        }
+      }
+    }
+  }
+
+  return { successCount, errors };
+}

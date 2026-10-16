@@ -51,6 +51,7 @@
    - **多牌組管理 (Multi-Deck Support)：** 內建「即時新聞」、「核心生詞」、「經典句型」牌組，並支援一鍵建立個人自訂牌組 (Custom Decks)。
    - **個人專屬筆記區 (Personal Notes)：** 每張卡片皆可在背面隨手記錄聯想記憶口訣、詞性搭配或重點備忘，輸入即時自動保存。
    - **獨創拼寫打字模式 (Type-to-Recall Mode)：** 支援在卡片正面親自鍵入拼寫驗證，拼對自動翻面，將「肌肉記憶」與「認知記憶」深度融合！
+   - **Markdown 格式雙向匯出與匯入 (Markdown Import / Export)：** 支援一鍵將牌組匯出為標準 Markdown 檔案 (`.md`) 或複製表格（高度相容 Obsidian、Notion），亦支援直接貼上或上傳 Markdown 筆記批次匯入卡片庫！
 
 4. **🎧 真人語音朗讀伴讀 (Web Speech API TTS):**
    - 原生支援 Web Speech 語音合成引擎，邊打字邊聆聽純正母語發音。
