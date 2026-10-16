@@ -80,6 +80,10 @@
                   查看原文 ↗
                 </a>
                 <span class="meta-divider">•</span>
+                <button id="btnOpenNCImportModal" class="btn btn-nc-import" title="一鍵貼上 Native Camp 聊天記錄，自動提取修正句、翻譯並轉為英打與卡牌">
+                  🗣️ 匯入 Native Camp
+                </button>
+                <span class="meta-divider">•</span>
                 <button id="btnStarActiveSentence" class="btn-star-sentence" title="將當前正在練習的句子加入記憶卡牌庫 (SRS Flashcards)">
                   ⭐ 收藏當前句至卡片庫
                 </button>
@@ -194,8 +198,11 @@
         </footer>
         </div>
 
-        <!-- 視圖 2: Anki 風格間隔重複卡片複習視圖容器 -->
+        <!-- 視圖 2: 記憶卡牌複習視圖容器 -->
         <div id="ankiViewWrapper" style="display: none;"></div>
+
+        <!-- 彈窗: Native Camp 課堂聊天記錄智慧匯入 (Modal) -->
+        <div id="nativeCampModal" class="deck-modal" style="display: none;"></div>
       </main>
 
       <!-- 結算成績彈窗 (Modal) -->

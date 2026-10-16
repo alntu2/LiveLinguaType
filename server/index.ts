@@ -4,6 +4,7 @@ import Parser from 'rss-parser';
 import { translate } from 'google-translate-api-x';
 import { SentenceBlock, translateArticle } from './translator';
 import { archiveManager } from './archive-manager';
+import { parseNativeCampChat } from './nativecamp-parser';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -358,6 +359,30 @@ app.get('/api/dict', async (req: Request, res: Response) => {
     dictEntries: [],
     error: '暫無此詞詳細釋義 (No definition found)'
   });
+});
+
+// Native Camp 課堂聊天記錄智慧解析與翻譯 API (Native Camp Chat Parser & Translator Endpoint)
+app.post('/api/nativecamp/parse-and-translate', async (req: Request, res: Response) => {
+  const { rawText, title } = req.body;
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+    res.status(400).json({ error: '請提供有效的 Native Camp 聊天室文字紀錄 (Invalid rawText)' });
+    return;
+  }
+
+  try {
+    const result = await parseNativeCampChat(rawText, title);
+    res.json({
+      success: true,
+      count: result.items.length,
+      ...result
+    });
+  } catch (error) {
+    console.error('[Native Camp Parser] Error processing chat text:', error);
+    res.status(500).json({
+      error: '剖析或翻譯課堂紀錄時發生錯誤',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 
 // 手動觸發快取釋放與記憶體清理 (Manual Cache Eviction Endpoint)

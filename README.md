@@ -53,21 +53,25 @@
    - **獨創拼寫打字模式 (Type-to-Recall Mode)：** 支援在卡片正面親自鍵入拼寫驗證，拼對自動翻面，將「肌肉記憶」與「認知記憶」深度融合！
    - **Markdown 格式雙向匯出與匯入 (Markdown Import / Export)：** 支援一鍵將牌組匯出為標準 Markdown 檔案 (`.md`) 或複製表格（高度相容 Obsidian、Notion），亦支援直接貼上或上傳 Markdown 筆記批次匯入卡片庫！
 
-4. **🎧 真人語音朗讀伴讀 (Web Speech API TTS):**
+4. **🗣️ Native Camp 課堂聊天紀錄智慧匯入 (Native Camp Chat History Importer):**
+   - **聊天紀錄一鍵貼上解析：** 線上 1 對 1 英文課後直接全選複製聊天室對話，系統智慧過濾寒暄客套雜訊，自動抓取外師修正句 (`You said / Better say`) 與關鍵單字片語。
+   - **雙向轉化英打練習與卡片庫：** 一鍵將外師批改的句子轉化為專屬打字練習題庫，並自動存入 `🗣️ Native Camp 課堂筆記` 記憶卡牌組，搭配個人筆記與 Google 雙語翻譯進行間隔重複複習！
+
+5. **🎧 真人語音朗讀伴讀 (Web Speech API TTS):**
    - 原生支援 Web Speech 語音合成引擎，邊打字邊聆聽純正母語發音。
    - 支援自訂語速 (0.75x ~ 1.5x) 與美式/英式發音偏好切換。
    - 快捷鍵 `Ctrl + J`（Mac 支援 `Ctrl + J` 或 `Cmd + J`）即可隨時重播當前句朗讀。
 
-5. **⌨️ 機械鍵盤擬真音效 (Mechanical Keyboard Sound FX):**
+6. **⌨️ 機械鍵盤擬真音效 (Mechanical Keyboard Sound FX):**
    - 內建高品質機械鍵盤音效（青軸 Clicky、茶軸 Tactile、打字機 Vintage）。
    - 具備多聲道音效池與自訂音量滑桿，帶來極致沉浸的敲擊打字手感。
 
-6. **🎯 零誤差打字引擎 (Zero-Drift Typing Engine):**
+7. **🎯 零誤差打字引擎 (Zero-Drift Typing Engine):**
    - 即時計算 WPM (Words Per Minute)、準確率 (Accuracy) 與文章完成進度。
    - **打錯字即時懸浮標籤 (Typed Char Above Badge)：** 按錯鍵時直接在英文字上方浮現按下的按鍵（例如誤按的字母或空白鍵），精準修正肌肉記憶。
    - 中文輸入法 (IME) 與 CapsLock 誤觸即時預警提示。
 
-7. **⚡ 輕量高效後端架構 (Zero-Config Backend):**
+8. **⚡ 輕量高效後端架構 (Zero-Config Backend):**
    - 內建高效率 Google GTX 翻譯代理與 RSS 摘要擷取服務，完全免 API Key 開箱即用。
    - 具備伺服器記憶體快取 (In-Memory Cache) 與快取清理 (Purge Cache) 機制。
 

@@ -9,7 +9,9 @@ import {
   deleteCard,
   isSentenceStarred,
   getDeckStats,
-  getAllCards
+  getAllCards,
+  getDecks,
+  addDeck
 } from './srs';
 import { AnkiView } from './anki-view';
 
@@ -47,6 +49,8 @@ const ankiNavBadge = document.getElementById('ankiNavBadge') as HTMLElement;
 const typingViewWrapper = document.getElementById('typingViewWrapper') as HTMLElement;
 const ankiViewWrapper = document.getElementById('ankiViewWrapper') as HTMLElement;
 const btnStarActiveSentence = document.getElementById('btnStarActiveSentence') as HTMLButtonElement;
+const btnOpenNCImportModal = document.getElementById('btnOpenNCImportModal') as HTMLButtonElement;
+const nativeCampModal = document.getElementById('nativeCampModal') as HTMLElement;
 
 const categoryNav = document.getElementById('categoryNav') as HTMLElement;
 const articleSelect = document.getElementById('articleSelect') as HTMLSelectElement;
@@ -865,6 +869,217 @@ if (tabAnki) {
 if (btnStarActiveSentence) {
   btnStarActiveSentence.addEventListener('click', () => {
     toggleStarActiveSentence();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Native Camp 課堂聊天紀錄匯入與解析 (Native Camp Chat History Parser)
+// ---------------------------------------------------------------------------
+function showNativeCampImportModal(): void {
+  if (!nativeCampModal) return;
+
+  const defaultDateStr = new Date().toISOString().slice(0, 10);
+  const sampleChat = `Teacher: Hello! How are you today?
+You: I am good!
+Teacher: What did you do on weekend?
+You said: I am go to shopping with friend.
+Better say: I went shopping with my friend.
+Teacher: Great! Remember that "go" in past tense is "went".
+Teacher: Also, another useful expression:
+Teacher: browse around
+Teacher: It means to look at items in a store without necessarily intending to buy.
+You said: I like to eat delicious foods.
+Better say: I enjoy eating good food.
+Teacher: See you next time!`;
+
+  nativeCampModal.innerHTML = `
+    <div class="nc-modal-overlay" id="ncOverlay">
+      <div class="nc-modal-card">
+        <div class="nc-modal-header">
+          <div class="nc-modal-title">
+            <span>🗣️</span>
+            <span>Native Camp 課堂聊天紀錄智慧匯入 (Chat Importer)</span>
+          </div>
+          <button class="nc-modal-close" id="ncBtnClose" title="關閉">&times;</button>
+        </div>
+        <div class="nc-modal-body">
+          <div class="nc-hint-box">
+            💡 <strong>快速上手：</strong>在 Native Camp 課後複製聊天室歷史紀錄（包含 <code>You said / Better say</code> 修正或老師給的單字片語），直接全選貼在下方。系統會自動去除寒暄客套雜訊，並調用雙語引擎補齊繁體中文釋義！
+          </div>
+
+          <div class="form-group" style="display:flex; gap:10px; align-items:center;">
+            <label style="color:#94a3b8; font-size:0.88rem; white-space:nowrap; font-weight:600;">課堂名稱：</label>
+            <input type="text" id="ncLessonTitle" class="form-input" style="flex:1;" value="Native Camp 課堂筆記 (${defaultDateStr})" placeholder="例如: Native Camp 日常會話複習" />
+            <button type="button" id="ncBtnLoadSample" class="anki-btn anki-btn-secondary" style="font-size:0.8rem; padding:6px 10px;">📄 載入範例</button>
+          </div>
+
+          <div class="form-group">
+            <label style="color:#94a3b8; font-size:0.88rem; font-weight:600; display:block; margin-bottom:6px;">聊天室紀錄 (Raw Chat Text)：</label>
+            <textarea id="ncChatInput" class="md-preview-textarea" style="height:180px; font-family:var(--font-mono); font-size:0.85rem;" placeholder="請在此貼上 Native Camp 聊天內容...&#10;例：&#10;You said: I am go to shopping.&#10;Better say: I went shopping.&#10;browse around"></textarea>
+          </div>
+
+          <div class="nc-options-grid">
+            <label class="nc-checkbox-label">
+              <input type="checkbox" id="ncOptTyping" checked />
+              <span>⌨️ 轉換為當前英打文章進行練習</span>
+            </label>
+            <label class="nc-checkbox-label">
+              <input type="checkbox" id="ncOptFlashcards" checked />
+              <span>🗂️ 存入記憶卡牌組 (🗣️ Native Camp)</span>
+            </label>
+          </div>
+
+          <div id="ncStatusMsg" style="display:none; font-size:0.88rem; padding:8px 12px; border-radius:6px;"></div>
+        </div>
+        <div class="nc-modal-footer">
+          <button type="button" class="anki-btn anki-btn-secondary" id="ncBtnCancel">取消</button>
+          <button type="button" class="nc-btn-submit" id="ncBtnParse">🚀 開始智慧解析與匯入</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  nativeCampModal.style.display = 'block';
+
+  const overlay = document.getElementById('ncOverlay') as HTMLElement;
+  const btnClose = document.getElementById('ncBtnClose') as HTMLButtonElement;
+  const btnCancel = document.getElementById('ncBtnCancel') as HTMLButtonElement;
+  const btnLoadSample = document.getElementById('ncBtnLoadSample') as HTMLButtonElement;
+  const btnParse = document.getElementById('ncBtnParse') as HTMLButtonElement;
+  const chatInput = document.getElementById('ncChatInput') as HTMLTextAreaElement;
+  const titleInput = document.getElementById('ncLessonTitle') as HTMLInputElement;
+  const optTyping = document.getElementById('ncOptTyping') as HTMLInputElement;
+  const optFlashcards = document.getElementById('ncOptFlashcards') as HTMLInputElement;
+  const statusMsg = document.getElementById('ncStatusMsg') as HTMLElement;
+
+  const closeModal = () => {
+    nativeCampModal.style.display = 'none';
+    nativeCampModal.innerHTML = '';
+  };
+
+  btnClose.addEventListener('click', closeModal);
+  btnCancel.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  btnLoadSample.addEventListener('click', () => {
+    chatInput.value = sampleChat;
+  });
+
+  btnParse.addEventListener('click', async () => {
+    const rawText = chatInput.value.trim();
+    if (!rawText) {
+      alert('請先貼上 Native Camp 聊天內容！');
+      chatInput.focus();
+      return;
+    }
+
+    const title = titleInput.value.trim() || `Native Camp 課堂筆記 (${defaultDateStr})`;
+    const createTyping = optTyping.checked;
+    const createFlashcards = optFlashcards.checked;
+
+    if (!createTyping && !createFlashcards) {
+      alert('請至少勾選一項匯入目標（英打練習 或 記憶卡牌庫）！');
+      return;
+    }
+
+    btnParse.disabled = true;
+    btnParse.textContent = '⏳ 解析與即時翻譯中...';
+    statusMsg.style.display = 'block';
+    statusMsg.style.background = 'rgba(56, 189, 248, 0.15)';
+    statusMsg.style.color = '#38bdf8';
+    statusMsg.textContent = '🔄 正在剖析錯句修正、過濾雜訊並補全繁體中文翻譯...';
+
+    try {
+      const resp = await fetch('/api/nativecamp/parse-and-translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText, title })
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${resp.status}`);
+      }
+
+      const result = await resp.json();
+      const { items, typingArticle } = result;
+
+      if (!items || items.length === 0) {
+        statusMsg.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusMsg.style.color = '#f87171';
+        statusMsg.textContent = '⚠️ 聊天內容中未辨識到有效練習句或單字，請檢查文字內容。';
+        btnParse.disabled = false;
+        btnParse.textContent = '🚀 開始智慧解析與匯入';
+        return;
+      }
+
+      // 1. 若勾選「存入記憶卡牌組」
+      if (createFlashcards) {
+        // 確保或新增 Native Camp 專屬牌組
+        const decks = getDecks();
+        let ncDeck = decks.find((d) => d.id === 'nativecamp' || d.name.includes('Native Camp'));
+        if (!ncDeck) {
+          ncDeck = addDeck('🗣️ Native Camp 課堂筆記', '🗣️', '由 Native Camp 課堂對話紀錄智慧萃取的複習卡片');
+          ncDeck.id = 'nativecamp'; // 給定標誌性 ID
+        }
+
+        for (const item of items) {
+          if (item.type === 'word') {
+            addWordCard(
+              item.front,
+              item.phonetic || '',
+              item.back,
+              item.context || '',
+              title,
+              ncDeck.id,
+              item.notes || ''
+            );
+          } else {
+            addSentenceCard(
+              item.front,
+              item.back,
+              title,
+              ncDeck.id,
+              item.notes || ''
+            );
+          }
+        }
+        updateAnkiBadge();
+      }
+
+      // 2. 若勾選「轉換為當前英打文章進行練習」
+      if (createTyping && typingArticle) {
+        // 插入到當前文章列表最前列
+        currentNewsList.unshift(typingArticle);
+        renderArticleSelect();
+        // 切換回英打主視圖
+        switchMainView('typing');
+        loadArticleAtIndex(0);
+      }
+
+      statusMsg.style.background = 'rgba(34, 197, 94, 0.15)';
+      statusMsg.style.color = '#4ade80';
+      statusMsg.textContent = `🎉 成功解析 ${items.length} 個複習要點！已為您同步完成。`;
+
+      setTimeout(() => {
+        closeModal();
+      }, 900);
+    } catch (err: any) {
+      console.error('Native Camp parse failed:', err);
+      statusMsg.style.background = 'rgba(239, 68, 68, 0.15)';
+      statusMsg.style.color = '#f87171';
+      statusMsg.textContent = `❌ 解析失敗：${err.message || '請確認後端連線正常'}`;
+      btnParse.disabled = false;
+      btnParse.textContent = '🚀 開始智慧解析與匯入';
+    }
+  });
+}
+
+if (btnOpenNCImportModal) {
+  btnOpenNCImportModal.addEventListener('click', () => {
+    showNativeCampImportModal();
   });
 }
 
