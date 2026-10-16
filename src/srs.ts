@@ -1,24 +1,34 @@
 // file:///Users/yiching/repo06/wrk_antigravity/61_Typing/src/srs.ts
 /**
  * @file srs.ts
- * @description 間隔重複記憶演算法 (SuperMemo-2 / SM-2 Spaced Repetition System) 核心模組
+ * @description 間隔重複記憶演算法 (SuperMemo-2 / SM-2 Spaced Repetition System) 與牌組/筆記管理核心模組
  */
 
 export type CardType = 'word' | 'sentence';
 export type SRSRating = 'again' | 'hard' | 'good' | 'easy';
 
+export interface SRSDeck {
+  id: string;
+  name: string;
+  icon?: string;
+  description?: string;
+  createdAt: number;
+}
+
 export interface SRSCard {
   id: string;
   type: CardType;
+  deckId: string;         // 所屬牌組 ID
   front: string;          // 單字或英文句子
   back: string;           // 中文翻譯 / 釋義
   phonetic?: string;      // 音標 (單字用)
   context?: string;       // 出處例句或新聞標題
   sourceArticle?: string; // 新聞來源
+  notes?: string;         // 使用者自訂備忘筆記 (Notes)
 
   // SM-2 參數
   repetition: number;     // 成功複習次數
-  interval: number;       // 當前間隔天數 (小數表示小於一天，如 0.007 約 10分鐘)
+  interval: number;       // 當前間隔天數 (小數表示小於一天)
   easeFactor: number;     // 難易度係數 (預設 2.5，最低 1.3)
   dueDate: number;        // 下次應複習時間戳 (Epoch ms)
   lastReviewed?: number;  // 上次複習時間戳
@@ -33,16 +43,131 @@ export interface DeckStats {
   sentenceCount: number;
 }
 
-const STORAGE_KEY = 'livelingua_srs_cards';
+const CARDS_STORAGE_KEY = 'livelingua_srs_cards';
+const DECKS_STORAGE_KEY = 'livelingua_srs_decks';
+
+// 系統預設牌組清單
+export const DEFAULT_DECKS: SRSDeck[] = [
+  {
+    id: 'default',
+    name: '即時新聞 (Daily News)',
+    icon: '📰',
+    description: '從每日新聞英打自動收錄的單字與例句',
+    createdAt: 1700000000000
+  },
+  {
+    id: 'vocab',
+    name: '核心生詞庫 (Vocabulary)',
+    icon: '💡',
+    description: '日常閱讀與練習中標記的重點詞彙',
+    createdAt: 1700000000001
+  },
+  {
+    id: 'sentences',
+    name: '經典句型庫 (Notable Sentences)',
+    icon: '💬',
+    description: '優美時事句子與慣用語',
+    createdAt: 1700000000002
+  }
+];
 
 /**
- * 取得所有儲存的卡片
+ * 取得所有牌組清單
+ */
+export function getDecks(): SRSDeck[] {
+  try {
+    const raw = localStorage.getItem(DECKS_STORAGE_KEY);
+    if (!raw) {
+      saveDecks(DEFAULT_DECKS);
+      return DEFAULT_DECKS;
+    }
+    const parsed: SRSDeck[] = JSON.parse(raw);
+    if (!parsed || parsed.length === 0) {
+      saveDecks(DEFAULT_DECKS);
+      return DEFAULT_DECKS;
+    }
+    return parsed;
+  } catch (error) {
+    console.error('Failed to load decks from storage:', error);
+    return DEFAULT_DECKS;
+  }
+}
+
+/**
+ * 儲存牌組清單
+ */
+export function saveDecks(decks: SRSDeck[]): void {
+  try {
+    localStorage.setItem(DECKS_STORAGE_KEY, JSON.stringify(decks));
+  } catch (error) {
+    console.error('Failed to save decks:', error);
+  }
+}
+
+/**
+ * 新增自訂牌組
+ */
+export function addDeck(name: string, icon: string = '📁', description?: string): SRSDeck {
+  const decks = getDecks();
+  const id = `deck_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const newDeck: SRSDeck = {
+    id,
+    name: name.trim(),
+    icon,
+    description: description?.trim() || '',
+    createdAt: Date.now()
+  };
+  decks.push(newDeck);
+  saveDecks(decks);
+  return newDeck;
+}
+
+/**
+ * 刪除自訂牌組 (不能刪除預設牌組；被刪除牌組的卡片將歸類至 default)
+ */
+export function deleteDeck(deckId: string): boolean {
+  if (deckId === 'default') return false;
+  const decks = getDecks();
+  const filtered = decks.filter((d) => d.id !== deckId);
+  if (filtered.length !== decks.length) {
+    saveDecks(filtered);
+
+    // 將該牌組卡片移至 default
+    const cards = getAllCards();
+    let updated = false;
+    for (const c of cards) {
+      if (c.deckId === deckId) {
+        c.deckId = 'default';
+        updated = true;
+      }
+    }
+    if (updated) {
+      saveAllCards(cards);
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 取得所有儲存的卡片 (自動填補缺失的 deckId)
  */
 export function getAllCards(): SRSCard[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(CARDS_STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const cards: SRSCard[] = JSON.parse(raw);
+    let dirty = false;
+    for (const card of cards) {
+      if (!card.deckId) {
+        card.deckId = card.type === 'sentence' ? 'sentences' : 'default';
+        dirty = true;
+      }
+    }
+    if (dirty) {
+      saveAllCards(cards);
+    }
+    return cards;
   } catch (error) {
     console.error('Failed to load SRS cards from storage:', error);
     return [];
@@ -54,35 +179,43 @@ export function getAllCards(): SRSCard[] {
  */
 export function saveAllCards(cards: SRSCard[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(cards));
   } catch (error) {
     console.error('Failed to save SRS cards:', error);
   }
 }
 
 /**
- * 取得當前到期需複習的卡片 (按到期時間先後排序)
+ * 取得指定牌組的到期需複習卡片 (若未指定 deckId 則返回全部到期卡片)
  */
-export function getDueCards(): SRSCard[] {
+export function getDueCards(deckId?: string): SRSCard[] {
   const now = Date.now();
   const cards = getAllCards();
   return cards
-    .filter((card) => card.dueDate <= now)
+    .filter((card) => {
+      const matchDeck = !deckId || deckId === 'all' || card.deckId === deckId;
+      return matchDeck && card.dueDate <= now;
+    })
     .sort((a, b) => a.dueDate - b.dueDate);
 }
 
 /**
- * 取得卡片庫統計數據
+ * 取得指定牌組或整體的卡片庫統計數據
  */
-export function getDeckStats(): DeckStats {
+export function getDeckStats(deckId?: string): DeckStats {
   const cards = getAllCards();
   const now = Date.now();
   let dueCount = 0;
   let learnedCount = 0;
   let wordCount = 0;
   let sentenceCount = 0;
+  let totalCount = 0;
 
   for (const card of cards) {
+    if (deckId && deckId !== 'all' && card.deckId !== deckId) {
+      continue;
+    }
+    totalCount++;
     if (card.dueDate <= now) {
       dueCount++;
     }
@@ -99,20 +232,25 @@ export function getDeckStats(): DeckStats {
   return {
     dueCount,
     learnedCount,
-    totalCount: cards.length,
+    totalCount,
     wordCount,
     sentenceCount
   };
 }
 
 /**
+ * 取得所有牌組及其對應統計數據
+ */
+export function getAllDecksWithStats(): Array<SRSDeck & { stats: DeckStats }> {
+  const decks = getDecks();
+  return decks.map((deck) => ({
+    ...deck,
+    stats: getDeckStats(deck.id)
+  }));
+}
+
+/**
  * 依據 SM-2 演算法計算下次複習間隔
- * 
- * 評分標準：
- * - again (重來, q=1): 重置次數，10分鐘後再背
- * - hard (困難, q=3): 間隔維持 1.2 倍或 1 天
- * - good (良好, q=4): 標準間隔遞增 (1天 -> 3天 -> interval * EF)
- * - easy (簡單, q=5): 獎勵間隔 (1天 -> 4天 -> interval * EF * 1.3)
  */
 export function calculateSM2(card: SRSCard, rating: SRSRating): {
   repetition: number;
@@ -197,6 +335,30 @@ export function reviewCard(cardId: string, rating: SRSRating): SRSCard | null {
 }
 
 /**
+ * 更新卡片的自訂筆記 (Personal Notes)
+ */
+export function updateCardNotes(cardId: string, notes: string): boolean {
+  const cards = getAllCards();
+  const card = cards.find((c) => c.id === cardId);
+  if (!card) return false;
+  card.notes = notes.trim();
+  saveAllCards(cards);
+  return true;
+}
+
+/**
+ * 更新卡片所屬牌組 (Move Card to Deck)
+ */
+export function updateCardDeck(cardId: string, deckId: string): boolean {
+  const cards = getAllCards();
+  const card = cards.find((c) => c.id === cardId);
+  if (!card) return false;
+  card.deckId = deckId;
+  saveAllCards(cards);
+  return true;
+}
+
+/**
  * 新增單字卡 (若已存在則不重複新增)
  */
 export function addWordCard(
@@ -204,18 +366,20 @@ export function addWordCard(
   phonetic: string,
   meaning: string,
   context?: string,
-  sourceArticle?: string
+  sourceArticle?: string,
+  deckId: string = 'vocab',
+  notes?: string
 ): SRSCard {
   const cards = getAllCards();
   const normalized = word.trim().toLowerCase();
   const existing = cards.find((c) => c.type === 'word' && c.front.trim().toLowerCase() === normalized);
 
   if (existing) {
-    // 更新釋義與出處
     existing.back = meaning || existing.back;
     existing.phonetic = phonetic || existing.phonetic;
     if (context) existing.context = context;
     if (sourceArticle) existing.sourceArticle = sourceArticle;
+    if (notes) existing.notes = notes;
     saveAllCards(cards);
     return existing;
   }
@@ -223,15 +387,17 @@ export function addWordCard(
   const newCard: SRSCard = {
     id: `word_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     type: 'word',
+    deckId: deckId || 'vocab',
     front: word.trim(),
     back: meaning.trim(),
     phonetic: phonetic.trim(),
     context: context?.trim(),
     sourceArticle: sourceArticle?.trim(),
+    notes: notes?.trim() || '',
     repetition: 0,
     interval: 0,
     easeFactor: 2.5,
-    dueDate: Date.now(), // 立即進入待複習
+    dueDate: Date.now(),
     createdAt: Date.now()
   };
 
@@ -246,7 +412,9 @@ export function addWordCard(
 export function addSentenceCard(
   english: string,
   chinese: string,
-  sourceArticle?: string
+  sourceArticle?: string,
+  deckId: string = 'sentences',
+  notes?: string
 ): SRSCard {
   const cards = getAllCards();
   const normalized = english.trim().toLowerCase();
@@ -257,6 +425,7 @@ export function addSentenceCard(
   if (existing) {
     existing.back = chinese || existing.back;
     if (sourceArticle) existing.sourceArticle = sourceArticle;
+    if (notes) existing.notes = notes;
     saveAllCards(cards);
     return existing;
   }
@@ -264,9 +433,11 @@ export function addSentenceCard(
   const newCard: SRSCard = {
     id: `sent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     type: 'sentence',
+    deckId: deckId || 'sentences',
     front: english.trim(),
     back: chinese.trim(),
     sourceArticle: sourceArticle?.trim(),
+    notes: notes?.trim() || '',
     repetition: 0,
     interval: 0,
     easeFactor: 2.5,
@@ -311,7 +482,7 @@ export function syncFromWordbook(): void {
     const wordbook: Array<{ word: string; phonetic: string; meaning: string }> = JSON.parse(raw);
     for (const item of wordbook) {
       if (item.word) {
-        addWordCard(item.word, item.phonetic || '', item.meaning || '');
+        addWordCard(item.word, item.phonetic || '', item.meaning || '', undefined, undefined, 'vocab');
       }
     }
   } catch (err) {

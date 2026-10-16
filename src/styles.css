@@ -1176,6 +1176,82 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 牌組導覽列 (Deck Selector Bar) */
+.anki-deck-nav {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px 18px;
+  backdrop-filter: blur(12px);
+}
+
+.deck-nav-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.deck-nav-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.deck-pill-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.deck-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.deck-pill-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.deck-pill-btn.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(99, 102, 241, 0.35) 100%);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+}
+
+.deck-due-badge {
+  background: #f43f5e;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+}
+
+.btn-new-deck {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  padding: 5px 12px;
+}
+
 /* 頂部資訊與控制列 */
 .anki-header {
   display: flex;
@@ -1928,5 +2004,198 @@ body {
   padding: 40px;
   color: #64748b;
   font-size: 0.95rem;
+}
+
+/* ==========================================================================
+   牌組標籤與小筆記區 (Decks & Notes Enhancements)
+   ========================================================================== */
+.card-deck-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
+.progress-left-info {
+  display: flex;
+  align-items: center;
+}
+
+.card-top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-deck-indicator {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-deck-subtag {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 3px;
+  display: block;
+}
+
+/* 正面迷你筆記預覽 */
+.card-notes-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(254, 240, 138, 0.08);
+  border: 1px dashed rgba(250, 204, 21, 0.3);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #fef08a;
+  max-width: 580px;
+  margin: 10px 0;
+}
+
+.notes-preview-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 背面專屬小筆記區 (Notes Box) */
+.card-notes-box {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  max-width: 620px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.notes-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notes-box-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #facc15;
+}
+
+.notes-box-status {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-family: var(--font-mono);
+}
+
+.card-notes-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f8fafc;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 48px;
+}
+
+.card-notes-textarea::placeholder {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+/* 牌組管理抽屜中的選擇器 */
+.row-deck-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.row-notes {
+  font-size: 0.78rem;
+  color: #facc15;
+  background: rgba(234, 179, 8, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+/* 新增牌組彈窗表單 */
+.deck-new-card-modal {
+  max-width: 460px;
+}
+
+.deck-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-form-group label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.form-input, .form-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #f8fafc;
+  font-size: 0.92rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.form-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.modal-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
 }
 
