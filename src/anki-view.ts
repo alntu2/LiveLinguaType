@@ -297,7 +297,7 @@ export class AnkiView {
           <p class="empty-desc">
             ${hasAnyCards
               ? '此牌組目前沒有到期的卡片需要複習。持續保持記憶間隔，效果最佳！'
-              : '在「新聞英打」練習時，點擊任何單字或按下句子右側的 ⭐ 收藏按鈕，即可將內容自動同步進 Anki 記憶卡庫！'}
+              : '在「新聞英打」練習時，點擊任何單字或按下句子右側的 ⭐ 收藏按鈕，即可將內容自動同步進智慧卡片庫！'}
           </p>
           <div class="empty-actions">
             ${hasAnyCards ? `

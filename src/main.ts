@@ -784,12 +784,12 @@ function updateSentenceStarButton(sentence: SentenceBlock | null): void {
   const starred = isSentenceStarred(sentence.en);
   if (starred) {
     btnStarActiveSentence.classList.add('starred');
-    btnStarActiveSentence.textContent = '★ 已存入 Anki 卡片庫';
-    btnStarActiveSentence.title = '點擊從 Anki 移除此句子卡 (Remove from Anki)';
+    btnStarActiveSentence.textContent = '★ 已存入卡片庫';
+    btnStarActiveSentence.title = '點擊從卡片庫移除此句子 (Remove from Flashcards)';
   } else {
     btnStarActiveSentence.classList.remove('starred');
-    btnStarActiveSentence.textContent = '⭐ 收藏當前句至 Anki';
-    btnStarActiveSentence.title = '將此句與雙語中文加入 Anki 記憶卡片庫 (Save to Anki)';
+    btnStarActiveSentence.textContent = '⭐ 收藏當前句至卡片庫';
+    btnStarActiveSentence.title = '將此句與雙語中文加入記憶卡片庫 (Save to Flashcards)';
   }
 }
 
