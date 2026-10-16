@@ -1081,3 +1081,852 @@ body {
   padding: 8px 0;
 }
 
+/* ==========================================================================
+   頂部功能切換分頁 (View Navigation Tabs)
+   ========================================================================== */
+.view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.view-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.view-tab-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.view-tab-btn.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(99, 102, 241, 0.35) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.15);
+}
+
+.nav-badge {
+  background: #f43f5e;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(244, 63, 94, 0.4);
+}
+
+/* 句子收藏按鈕 */
+.btn-star-sentence {
+  background: rgba(234, 179, 8, 0.12);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-star-sentence:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-star-sentence.starred {
+  background: #eab308;
+  color: #0f172a;
+  border-color: #facc15;
+}
+
+/* ==========================================================================
+   Anki 間隔重複卡牌學習系統 (Anki Spaced Repetition Workspace)
+   ========================================================================== */
+.anki-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 頂部資訊與控制列 */
+.anki-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px 20px;
+  backdrop-filter: blur(12px);
+}
+
+.anki-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.anki-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.anki-stat-pill.due-pill {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+
+.anki-stat-pill.due-pill .stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 8px #f43f5e;
+}
+
+.anki-stat-pill.learned-pill {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.anki-stat-pill.total-pill {
+  color: #94a3b8;
+}
+
+.anki-stat-pill .stat-num {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.anki-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.anki-filter-group {
+  display: flex;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.anki-pill-btn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.anki-pill-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.anki-mode-toggle {
+  display: flex;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.anki-mode-btn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.anki-mode-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  color: #818cf8;
+  font-weight: 700;
+}
+
+/* 複習主舞台 */
+.anki-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 480px;
+}
+
+/* 空白狀態 */
+.anki-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 30px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 680px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-glass);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: floatBounce 2.5s ease-in-out infinite;
+}
+
+@keyframes floatBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.empty-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 12px;
+}
+
+.empty-desc {
+  font-size: 1rem;
+  color: #94a3b8;
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 卡片包裝器 */
+.anki-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 760px;
+  gap: 16px;
+}
+
+.anki-progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.progress-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.progress-track {
+  width: 220px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #6366f1 100%);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Anki 卡片本體 */
+.anki-card {
+  width: 100%;
+  min-height: 420px;
+  background: rgba(18, 24, 38, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.anki-card:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.1);
+}
+
+.card-face {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+.card-top-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.card-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.card-badge.badge-word {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.card-badge.badge-sentence {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.card-speak-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  font-size: 1.1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-speak-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  transform: scale(1.08);
+}
+
+.card-front-content, .card-back-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.card-front-text {
+  font-family: var(--font-mono);
+  color: #f8fafc;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.card-front-text.word-size {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.card-front-text.sentence-size {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: left;
+  width: 100%;
+}
+
+.card-phonetic {
+  font-family: var(--font-mono);
+  color: #94a3b8;
+  font-size: 1.15rem;
+  margin-bottom: 16px;
+}
+
+.card-context-quote {
+  font-size: 0.98rem;
+  color: #64748b;
+  font-style: italic;
+  max-width: 580px;
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 16px;
+  border-radius: 8px;
+  border-left: 3px solid rgba(56, 189, 248, 0.4);
+  margin-top: 10px;
+}
+
+.card-typing-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 540px;
+  margin: 20px 0;
+}
+
+.anki-type-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-size: 1.25rem;
+  font-family: var(--font-mono);
+  color: #f8fafc;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.anki-type-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.anki-type-input.correct {
+  border-color: #22c55e;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.anki-type-input.incorrect {
+  border-color: #f43f5e;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.3);
+}
+
+.typing-tip {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.card-bottom-hint {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.btn-flip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #f8fafc;
+}
+
+.btn-flip:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(99, 102, 241, 0.45) 100%);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+}
+
+.kbd-hint {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: #94a3b8;
+}
+
+/* 卡片背面內容 */
+.card-original-title {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.card-meaning-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 620px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.meaning-text {
+  font-size: 1.15rem;
+  color: #f8fafc;
+  line-height: 1.6;
+}
+
+.card-source-tag {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.card-srs-info {
+  display: flex;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-family: var(--font-mono);
+}
+
+/* SRS 評分按鈕群 */
+.anki-ratings-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.rating-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  font-family: inherit;
+}
+
+.rating-btn .rating-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.rating-btn .rating-time {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.rating-btn .rating-key {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  opacity: 0.5;
+}
+
+.rating-again {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.rating-again:hover {
+  background: rgba(244, 63, 94, 0.25);
+  border-color: #f43f5e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.25);
+}
+
+.rating-hard {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.rating-hard:hover {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: #f97316;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+}
+
+.rating-good {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.rating-good:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: #22c55e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25);
+}
+
+.rating-easy {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.rating-easy:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+}
+
+/* 卡片庫管理彈窗 (Modal) */
+.deck-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.deck-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.deck-modal-content {
+  position: relative;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+.deck-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.deck-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #f8fafc;
+}
+
+.deck-modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.deck-modal-close:hover {
+  color: #f8fafc;
+}
+
+.deck-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.deck-search-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.deck-search-input:focus {
+  border-color: #38bdf8;
+}
+
+.deck-count-badge {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.deck-cards-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px 24px;
+  gap: 10px;
+}
+
+.deck-card-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+
+.deck-card-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.row-front strong {
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.row-phonetic {
+  color: #64748b;
+  font-size: 0.82rem;
+  margin-left: 8px;
+  font-family: var(--font-mono);
+}
+
+.row-back {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-context {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.deck-empty {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+

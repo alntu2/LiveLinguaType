@@ -88,3 +88,7 @@ export class SpeechService {
 }
 
 export const speechService = new SpeechService();
+
+export function speakText(text: string): void {
+  speechService.speak(text);
+}

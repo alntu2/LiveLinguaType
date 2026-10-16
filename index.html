@@ -25,6 +25,16 @@
           </div>
         </div>
 
+        <div class="view-tabs" role="tablist" aria-label="主要功能切換">
+          <button id="tabTyping" class="view-tab-btn active" role="tab" aria-selected="true">
+            ⌨️ 即時新聞英打
+          </button>
+          <button id="tabAnki" class="view-tab-btn" role="tab" aria-selected="false">
+            🎴 Anki 記憶卡牌
+            <span id="ankiNavBadge" class="nav-badge" style="display: none;">0</span>
+          </button>
+        </div>
+
         <nav class="category-nav" id="categoryNav" aria-label="新聞分類選單">
           <!-- 動態載入分類按鈕 -->
         </nav>
@@ -49,26 +59,32 @@
 
       <!-- 主要內容區域 -->
       <main class="main-content">
-        <!-- 新聞控制與資訊列 -->
-        <section class="news-bar">
-          <div class="news-bar-top">
-            <div class="article-selector-wrapper">
-              <label for="articleSelect" class="selector-label">當前新聞 (Article)：</label>
-              <select id="articleSelect" class="article-select" aria-label="選擇新聞文章">
-                <option value="">載入新聞中 (Loading)...</option>
-              </select>
-            </div>
+        <!-- 視圖 1: 即時新聞英打視圖容器 -->
+        <div id="typingViewWrapper">
+          <!-- 新聞控制與資訊列 -->
+          <section class="news-bar">
+            <div class="news-bar-top">
+              <div class="article-selector-wrapper">
+                <label for="articleSelect" class="selector-label">當前新聞 (Article)：</label>
+                <select id="articleSelect" class="article-select" aria-label="選擇新聞文章">
+                  <option value="">載入新聞中 (Loading)...</option>
+                </select>
+              </div>
 
-            <div class="news-meta" id="newsMeta">
-              <span class="meta-item" id="newsWordCount">0 Words</span>
-              <span class="meta-divider">•</span>
-              <span class="meta-item" id="newsPubDate">Just now</span>
-              <span class="meta-divider">•</span>
-              <a id="newsOriginalLink" href="#" target="_blank" rel="noopener noreferrer" class="news-source-link">
-                查看原文 ↗
-              </a>
+              <div class="news-meta" id="newsMeta">
+                <span class="meta-item" id="newsWordCount">0 Words</span>
+                <span class="meta-divider">•</span>
+                <span class="meta-item" id="newsPubDate">Just now</span>
+                <span class="meta-divider">•</span>
+                <a id="newsOriginalLink" href="#" target="_blank" rel="noopener noreferrer" class="news-source-link">
+                  查看原文 ↗
+                </a>
+                <span class="meta-divider">•</span>
+                <button id="btnStarActiveSentence" class="btn-star-sentence" title="將當前正在練習的句子加入 Anki 記憶卡牌">
+                  ⭐ 收藏當前句至 Anki
+                </button>
+              </div>
             </div>
-          </div>
 
           <div class="news-bar-bottom">
             <div class="news-options">
@@ -176,6 +192,10 @@
             🧹 清理資源 (Free Memory)
           </button>
         </footer>
+        </div>
+
+        <!-- 視圖 2: Anki 風格間隔重複卡片複習視圖容器 -->
+        <div id="ankiViewWrapper" style="display: none;"></div>
       </main>
 
       <!-- 結算成績彈窗 (Modal) -->

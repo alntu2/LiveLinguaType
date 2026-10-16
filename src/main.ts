@@ -2,6 +2,16 @@
 import { TypingEngine, TypingMetrics, SentenceBlock } from './typing-engine';
 import { speechService } from './speech-service';
 import { keyboardSound, KeyboardSoundType } from './keyboard-sound';
+import {
+  syncFromWordbook,
+  addWordCard,
+  addSentenceCard,
+  deleteCard,
+  isSentenceStarred,
+  getDeckStats,
+  getAllCards
+} from './srs';
+import { AnkiView } from './anki-view';
 
 interface Category {
   id: string;
@@ -27,8 +37,17 @@ let currentArticleIndex = 0;
 let engine: TypingEngine | null = null;
 let memoryCleanCount = 0;
 let isOfflineMode = false;
+let ankiView: AnkiView | null = null;
+let currentActiveSentence: SentenceBlock | null = null;
 
 // DOM 元素引用 (Element References)
+const tabTyping = document.getElementById('tabTyping') as HTMLButtonElement;
+const tabAnki = document.getElementById('tabAnki') as HTMLButtonElement;
+const ankiNavBadge = document.getElementById('ankiNavBadge') as HTMLElement;
+const typingViewWrapper = document.getElementById('typingViewWrapper') as HTMLElement;
+const ankiViewWrapper = document.getElementById('ankiViewWrapper') as HTMLElement;
+const btnStarActiveSentence = document.getElementById('btnStarActiveSentence') as HTMLButtonElement;
+
 const categoryNav = document.getElementById('categoryNav') as HTMLElement;
 const articleSelect = document.getElementById('articleSelect') as HTMLSelectElement;
 const toggleTranslation = document.getElementById('toggleTranslation') as HTMLInputElement;
@@ -199,6 +218,8 @@ function loadArticleAtIndex(index: number): void {
         showImeWarning(char);
       },
       onSentenceChange: (_sentenceIndex, sentence) => {
+        currentActiveSentence = sentence;
+        updateSentenceStarButton(sentence);
         if (toggleSpeech && toggleSpeech.checked) {
           speechService.speak(sentence.en);
         }
@@ -229,6 +250,11 @@ function loadArticleAtIndex(index: number): void {
   // 傳入文章與分句譯文資料
   engine.loadText(article.fullTypingText, article.sentences || []);
   applyTranslationVisibility();
+
+  // 更新首句 active sentence 狀態
+  const firstSentence = engine.getCurrentSentence();
+  currentActiveSentence = firstSentence;
+  updateSentenceStarButton(firstSentence);
 
   recordMemoryPurge('DOM & Timers Recycled');
 
@@ -555,6 +581,15 @@ function toggleStarCurrentWord(): void {
     list.splice(index, 1);
     saveWordbook(list);
     updateStarBtnState(false);
+
+    // 同步從 SRS 卡片庫移除
+    const allCards = getAllCards();
+    const target = allCards.find(
+      (c) => c.type === 'word' && c.front.trim().toLowerCase() === currentInspectWord.trim().toLowerCase()
+    );
+    if (target) {
+      deleteCard(target.id);
+    }
   } else {
     list.unshift({
       word: currentInspectWord,
@@ -564,7 +599,19 @@ function toggleStarCurrentWord(): void {
     });
     saveWordbook(list);
     updateStarBtnState(true);
+
+    // 同步存入 SRS 卡片庫
+    addWordCard(
+      currentInspectWord,
+      currentInspectPhonetic,
+      currentInspectMeaning,
+      currentActiveSentence?.en || '',
+      currentNewsList[currentArticleIndex]?.title || ''
+    );
   }
+
+  updateAnkiBadge();
+  ankiView?.refreshCards();
 }
 
 function hideDictPopover(): void {
@@ -714,12 +761,123 @@ document.addEventListener('pointerdown', (e) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Anki 整合與句子收藏處理 (Anki & Sentence Starring Integration)
+// ---------------------------------------------------------------------------
+function updateAnkiBadge(): void {
+  const stats = getDeckStats();
+  if (stats.dueCount > 0) {
+    ankiNavBadge.textContent = stats.dueCount.toString();
+    ankiNavBadge.style.display = 'inline-block';
+  } else {
+    ankiNavBadge.style.display = 'none';
+  }
+}
+
+function updateSentenceStarButton(sentence: SentenceBlock | null): void {
+  if (!btnStarActiveSentence) return;
+  if (!sentence || !sentence.en) {
+    btnStarActiveSentence.style.display = 'none';
+    return;
+  }
+  btnStarActiveSentence.style.display = 'inline-block';
+  const starred = isSentenceStarred(sentence.en);
+  if (starred) {
+    btnStarActiveSentence.classList.add('starred');
+    btnStarActiveSentence.textContent = '★ 已存入 Anki 卡片庫';
+    btnStarActiveSentence.title = '點擊從 Anki 移除此句子卡 (Remove from Anki)';
+  } else {
+    btnStarActiveSentence.classList.remove('starred');
+    btnStarActiveSentence.textContent = '⭐ 收藏當前句至 Anki';
+    btnStarActiveSentence.title = '將此句與雙語中文加入 Anki 記憶卡片庫 (Save to Anki)';
+  }
+}
+
+function toggleStarActiveSentence(): void {
+  if (!currentActiveSentence || !currentActiveSentence.en) return;
+  const starred = isSentenceStarred(currentActiveSentence.en);
+  if (starred) {
+    const cards = getAllCards();
+    const target = cards.find(
+      (c) => c.type === 'sentence' && c.front.trim().toLowerCase() === currentActiveSentence!.en.trim().toLowerCase()
+    );
+    if (target) {
+      deleteCard(target.id);
+    }
+  } else {
+    addSentenceCard(
+      currentActiveSentence.en,
+      currentActiveSentence.zh || '',
+      currentNewsList[currentArticleIndex]?.title || ''
+    );
+  }
+  updateSentenceStarButton(currentActiveSentence);
+  updateAnkiBadge();
+  ankiView?.refreshCards();
+}
+
+function switchMainView(view: 'typing' | 'anki'): void {
+  if (view === 'typing') {
+    tabTyping.classList.add('active');
+    tabTyping.setAttribute('aria-selected', 'true');
+    tabAnki.classList.remove('active');
+    tabAnki.setAttribute('aria-selected', 'false');
+
+    typingViewWrapper.style.display = 'block';
+    ankiViewWrapper.style.display = 'none';
+
+    // 聚焦輸入框
+    setTimeout(() => {
+      typingContainer.focus();
+    }, 50);
+  } else {
+    tabAnki.classList.add('active');
+    tabAnki.setAttribute('aria-selected', 'true');
+    tabTyping.classList.remove('active');
+    tabTyping.setAttribute('aria-selected', 'false');
+
+    typingViewWrapper.style.display = 'none';
+    ankiViewWrapper.style.display = 'block';
+
+    // 暫停打字語音朗讀與關閉微型詞典
+    speechService.stop();
+    hideDictPopover();
+
+    // 渲染或重新整理 Anki 視圖
+    if (!ankiView) {
+      ankiView = new AnkiView(ankiViewWrapper, () => {
+        updateAnkiBadge();
+      });
+    }
+    ankiView.render();
+  }
+}
+
+// 綁定 Tab 切換與句子收藏事件
+if (tabTyping) {
+  tabTyping.addEventListener('click', () => switchMainView('typing'));
+}
+
+if (tabAnki) {
+  tabAnki.addEventListener('click', () => switchMainView('anki'));
+}
+
+if (btnStarActiveSentence) {
+  btnStarActiveSentence.addEventListener('click', () => {
+    toggleStarActiveSentence();
+  });
+}
+
 typingContainer.addEventListener('click', () => {
   typingContainer.classList.add('is-active');
   hiddenInput.focus();
 });
 
 window.addEventListener('DOMContentLoaded', async () => {
+  // 自動將現有生字本同步至 SRS 卡片庫
+  syncFromWordbook();
+  updateAnkiBadge();
+
   applyTranslationVisibility();
   await loadArchiveSettings();
   await loadCategories();
