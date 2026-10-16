@@ -515,7 +515,7 @@ export function exportCardsToMarkdown(deckId?: string): string {
     `> **牌組範圍：** ${deckName}  `,
     `> **卡片總數：** ${cards.length} 張`,
     ``,
-    `| 類型 (Type) | 牌組 (Deck) | 英文內容 (Front) | 音標 (Phonetic) | 中文釋義 (Back) | 我的筆記 (Notes) | 例句/出處 (Context) |`,
+    `| 英文內容 (Front) | 音標 (Phonetic) | 中文釋義 (Back) | 例句/出處 (Context) | 我的筆記 (Notes) | 類型 (Type) | 牌組 (Deck) |`,
     `| :--- | :--- | :--- | :--- | :--- | :--- | :--- |`
   ];
 
@@ -525,11 +525,11 @@ export function exportCardsToMarkdown(deckId?: string): string {
     const cleanFront = (card.front || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
     const cleanPhonetic = (card.phonetic || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
     const cleanBack = (card.back || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
-    const cleanNotes = (card.notes || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
     const cleanContext = (card.context || card.sourceArticle || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+    const cleanNotes = (card.notes || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
 
     lines.push(
-      `| ${typeLabel} | ${cardDeck} | ${cleanFront} | ${cleanPhonetic} | ${cleanBack} | ${cleanNotes} | ${cleanContext} |`
+      `| ${cleanFront} | ${cleanPhonetic} | ${cleanBack} | ${cleanContext} | ${cleanNotes} | ${typeLabel} | ${cardDeck} |`
     );
   }
 
@@ -549,6 +549,7 @@ export function importCardsFromMarkdown(
 ): { successCount: number; errors: string[] } {
   const lines = markdownContent.split(/\r?\n/);
   const errors: string[] = [];
+  const decks = getDecks();
   let successCount = 0;
 
   for (let i = 0; i < lines.length; i++) {
@@ -577,28 +578,47 @@ export function importCardsFromMarkdown(
       let front = '';
       let back = '';
       let phonetic = '';
-      let notes = '';
       let context = '';
+      let notes = '';
+      let deckNameFromRow = '';
 
-      if (parts.length >= 7) {
-        // 標準完整 7 欄格式: [Type, Deck, Front, Phonetic, Back, Notes, Context]
+      // 檢查是否為舊版 legacy 順序 (首欄為「單字」或「句子」)
+      const isLegacyOrder = parts[0] === '單字' || parts[0] === '句子' || parts[0] === 'Word' || parts[0] === 'Sentence';
+
+      if (isLegacyOrder && parts.length >= 7) {
+        // 舊版 7 欄格式: [Type, Deck, Front, Phonetic, Back, Notes, Context]
         front = parts[2];
         phonetic = parts[3];
         back = parts[4].replace(/<br\s*\/?>/gi, '\n');
         notes = parts[5].replace(/<br\s*\/?>/gi, '\n');
         context = parts[6];
-      } else if (parts.length >= 5) {
-        // 5 欄格式: [Front, Phonetic, Back, Notes, Context]
+        deckNameFromRow = parts[1];
+      } else if (parts.length >= 7) {
+        // 新標準 7 欄格式: [Front, Phonetic, Back, Context, Notes, Type, Deck]
         front = parts[0];
         phonetic = parts[1];
         back = parts[2].replace(/<br\s*\/?>/gi, '\n');
-        notes = parts[3].replace(/<br\s*\/?>/gi, '\n');
-        context = parts[4];
+        context = parts[3];
+        notes = parts[4].replace(/<br\s*\/?>/gi, '\n');
+        deckNameFromRow = parts[6];
+      } else if (parts.length >= 5) {
+        // 5 欄格式: [Front, Phonetic, Back, Context, Notes]
+        front = parts[0];
+        phonetic = parts[1];
+        back = parts[2].replace(/<br\s*\/?>/gi, '\n');
+        context = parts[3];
+        notes = parts[4].replace(/<br\s*\/?>/gi, '\n');
+      } else if (parts.length >= 4) {
+        // 4 欄格式: [Front, Phonetic, Back, Context]
+        front = parts[0];
+        phonetic = parts[1];
+        back = parts[2].replace(/<br\s*\/?>/gi, '\n');
+        context = parts[3];
       } else if (parts.length >= 3) {
-        // 3 欄格式: [Front, Back, Notes]
+        // 3 欄格式: [Front, Back, Notes 或 Context]
         front = parts[0];
         back = parts[1].replace(/<br\s*\/?>/gi, '\n');
-        notes = parts[2].replace(/<br\s*\/?>/gi, '\n');
+        context = parts[2];
       } else if (parts.length === 2) {
         // 最簡 2 欄格式: [Front, Back]
         front = parts[0];
@@ -606,11 +626,20 @@ export function importCardsFromMarkdown(
       }
 
       if (front && back) {
+        // 判斷所屬牌組：若表格自帶牌組且系統存在該牌組，則自動配對
+        let resolvedDeckId = targetDeckId;
+        if (deckNameFromRow) {
+          const matchedDeck = decks.find((d) => d.name.toLowerCase() === deckNameFromRow.toLowerCase());
+          if (matchedDeck) {
+            resolvedDeckId = matchedDeck.id;
+          }
+        }
+
         const isSentence = front.includes(' ') && front.length > 25;
         if (isSentence) {
-          addSentenceCard(front, back, context, targetDeckId, notes);
+          addSentenceCard(front, back, context, resolvedDeckId, notes);
         } else {
-          addWordCard(front, phonetic, back, context, undefined, targetDeckId, notes);
+          addWordCard(front, phonetic, back, context, undefined, resolvedDeckId, notes);
         }
         successCount++;
         continue;

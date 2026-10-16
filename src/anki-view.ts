@@ -903,13 +903,14 @@ export class AnkiView {
             <textarea
               id="importMdTextarea"
               class="md-preview-textarea"
-              placeholder="| 英文 (Front) | 中文釋義 (Back) | 筆記 (Notes) |&#10;或&#10;Front :: Back&#10;或&#10;- Front : Back"
+              placeholder="| 英文內容 (Front) | 音標 (Phonetic) | 中文釋義 (Back) | 例句/出處 (Context) | 我的筆記 (Notes) | 類型 (Type) | 牌組 (Deck) |&#10;或&#10;Front :: Back&#10;或&#10;- Front : Back"
               rows="8"
             ></textarea>
           </div>
 
           <div class="md-format-hint">
-            💡 <strong>支援格式：</strong>Markdown 表格 (<code>| Front | Back |</code>)、雙冒號分隔 (<code>Front :: Back</code>) 或項目清單 (<code>- Front : Back</code>)。
+            💡 <strong>標準表格順序：</strong><code>| 英文內容 | 音標 | 中文釋義 | 例句/出處 | 我的筆記 | 類型 | 牌組 |</code><br>
+            亦支援 <code>Front :: Back</code> 雙冒號或 <code>- Front : Back</code> 清單格式。
           </div>
 
           <div class="modal-form-actions">
