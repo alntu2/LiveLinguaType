@@ -369,9 +369,15 @@ export class TypingEngine {
       }
     }
 
+    // 若使用者正在操作其他文字輸入框 (如彈窗 input、textarea)，不攔截打字鍵盤事件
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl !== this.container && activeEl.id !== 'hiddenInput' && (activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
     if (e.ctrlKey || e.altKey || e.metaKey || this.isFinished) return;
 
-    if (e.key === 'Backspace') {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
       if (this.onKeyPress) this.onKeyPress('Backspace');
       this.handleBackspace();
