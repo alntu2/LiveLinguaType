@@ -59,13 +59,14 @@ export async function parseNativeCampChat(rawText: string, customTitle?: string)
     let line = rawLines[i].trim();
     if (!line) continue;
 
-    // 清理時間戳記 (例如: "14:23 Tutor:", "2026/10/16 14:25:30")
-    line = line.replace(/^[0-9:\s\/\-APMapm]+(?:Tutor|Teacher|Me|You|Student)?[:\s]*/i, '').trim();
+    // 1. 清理時間戳記 (例如: "14:23", "14:23:05", "2026/10/16 14:25:30", "14:23 PM")
+    line = line.replace(/^(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+)?\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AP]M)?\s*/i, '').trim();
 
-    // 移除純時間或說話者名稱標籤 (如 "Teacher:", "Me:")
+    // 2. 移除純說話者名稱標籤或無意義行 (如 "Teacher:", "Me:")
     if (/^(Tutor|Teacher|Me|You|Student)[:\s]*$/i.test(line)) continue;
-    // 去除行首的說話者前綴 (如 "Teacher: browse around" -> "browse around")
-    line = line.replace(/^(?:Tutor|Teacher|Me|Student)[:\s]+/i, '').trim();
+
+    // 3. 去除行首的說話者前綴 (如 "Teacher: metal" -> "metal")
+    line = line.replace(/^(?:Tutor|Teacher|Me|Student)\s*:\s*/i, '').trim();
     if (isNoiseLine(line)) continue;
 
     // 模式 A: "You said: ... / Better say: ..." 雙行結構
@@ -75,8 +76,9 @@ export async function parseNativeCampChat(rawText: string, customTitle?: string)
       // 檢查下一行是否為 Better/Correction
       let betterText = '';
       if (i + 1 < rawLines.length) {
-        let nextLine = rawLines[i + 1].trim().replace(/^[0-9:\s\/\-APMapm]+/i, '').trim();
-        nextLine = nextLine.replace(/^(?:Tutor|Teacher|Me|Student)[:\s]+/i, '').trim();
+        let nextLine = rawLines[i + 1].trim();
+        nextLine = nextLine.replace(/^(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+)?\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AP]M)?\s*/i, '').trim();
+        nextLine = nextLine.replace(/^(?:Tutor|Teacher|Me|Student)\s*:\s*/i, '').trim();
         const betterMatch = nextLine.match(/(?:better(?:\s+(?:way\s+to\s+say|say))?|correct(?:ion)?|natural)[:\s]+(.+)/i);
         if (betterMatch) {
           betterText = betterMatch[1].trim();
