@@ -369,6 +369,11 @@ export class TypingEngine {
       }
     }
 
+    // 若打字容器處於隱藏狀態 (例如使用者切換至記憶卡牌 Flashcards 頁面)，不響應任何打字鍵盤事件
+    if (this.container.offsetParent === null) {
+      return;
+    }
+
     // 若使用者正在操作其他文字輸入框 (如彈窗 input、textarea)，不攔截打字鍵盤事件
     const activeEl = document.activeElement;
     if (activeEl && activeEl !== this.container && activeEl.id !== 'hiddenInput' && (activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement)) {

@@ -623,9 +623,17 @@ export class AnkiView {
       // 如果在筆記區 textarea 輸入中，不攔截任何快捷鍵
       if (activeEl?.id === 'cardNotesTextarea') return;
 
-      if (e.code === 'Space' && !this.isFlipped && !isInput) {
+      if (e.code === 'Space' && !isInput) {
         e.preventDefault();
-        this.flipCard();
+        if (!this.isFlipped) {
+          this.flipCard();
+        } else {
+          // 翻面後再次按 Space 鍵，重播卡片英文發音 (TTS)
+          const card = this.currentCards[this.currentCardIndex];
+          if (card) {
+            speakText(card.front);
+          }
+        }
         return;
       }
 
